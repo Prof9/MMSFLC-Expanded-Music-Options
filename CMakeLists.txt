@@ -3,12 +3,12 @@ cmake_minimum_required(
 )
 
 project(
-	MyCoolMod
+	ExpandedMusicOptions
 	VERSION 1.0.0
 	LANGUAGES CXX
 )
-set(CACHE{GAME_INSTALL_EXE} VALUE "Game.exe")
-set(CACHE{GAME_INSTALL_DIR_NAME} VALUE "Example Game")
+set(CACHE{GAME_INSTALL_EXE} VALUE "MEGAMAN_STARFORCE_Legacy_Collection.exe")
+set(CACHE{GAME_INSTALL_DIR_NAME} VALUE "MegaMan StarForce LegacyCollection")
 
 cmake_path(SET STEAM_LIBRARY_DIR "C:\\Program Files (x86)\\Steam\\")
 cmake_path(SET GAME_INSTALL_DIR "${STEAM_LIBRARY_DIR}/steamapps/common/${GAME_INSTALL_DIR_NAME}/")
@@ -22,7 +22,12 @@ include_directories(SYSTEM
 	"modules/reframework/include"
 )
 add_library(REF_PLUGIN SHARED
+	"src/Guid.cpp"
 	"src/Main.cpp"
+	"src/MessageFile.cpp"
+	"src/MessageManager.cpp"
+	"src/MessageReference.cpp"
+	"src/MessageUtility.cpp"
 )
 
 add_definitions(
