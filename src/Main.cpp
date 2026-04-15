@@ -190,9 +190,9 @@ false);
     reframework::API::Method *startMethod = tdb->find_method("app.GUILauncherOption", "start()");
     assert(startMethod != nullptr);
     startMethod->add_hook(
+        nullptr,
         [](auto...)
         {
-            /*
             reframework::InvokeRet x;
             auto &api = reframework::API::get();
             auto tdb = api->tdb();
@@ -254,257 +254,190 @@ false);
             reframework::API::ManagedObject *cursorMaxList = *cursorMaxList_ptr;
             assert(cursorMaxList != nullptr);
 
-            // get menuTblOption.CursolName
+            // get menuTblOption._CursolNameList
             reframework::API::ManagedObject **cursorNameListList_ptr = _menuTblOption->get_field<reframework::API::ManagedObject *>("_CursolNameList");
             assert(cursorNameListList_ptr != nullptr);
-            /*
             reframework::API::ManagedObject *cursorNameListList = *cursorNameListList_ptr;
             assert(cursorNameListList != nullptr);
-            */
-            /*
 
-          // get nameList.Length
-          x = nameList->invoke(
-              "get_Length",
-              {});
-          int numOptions = (int)x.dword;
+            // get nameList.Length
+            x = nameList->invoke(
+                "get_Length",
+                {});
+            _newSoundOptionsIdx = (int)x.dword;
 
-          // get GUID for BGM Selection string
-          Guid *guidBgmSelection = MessageUtility::getMessageGuidByName("Common_MsgGUI00030000_Sound_5");
-          assert(guidBgmSelection != nullptr);
+            // get System.Guid type
+            reframework::API::TypeDefinition *guidType = tdb->find_type("System.Guid");
+            assert(guidType != nullptr);
 
-          // find the BGM Selection option in the menu
-          for (int i = 0; i < numOptions; ++i)
-          {
-              // get nameList[i]
-              x = nameList->invoke(
-                  "get_Item",
-                  {
-                      (void *)(intptr_t)i,
-                  });
-              Guid *nameListI = (Guid *)&x;
+            // get System.Int32 type
+            reframework::API::TypeDefinition *int32Type = tdb->find_type("System.Int32");
+            assert(int32Type != nullptr);
 
-              if (*nameListI == *guidBgmSelection)
-              {
-                  bgmSelectionIdx = i;
-                  break;
-              }
-          }
-          assert(bgmSelectionIdx != -1);
+            // get System.Array type
+            reframework::API::TypeDefinition *arrayType = tdb->find_type("System.Array");
+            assert(arrayType != nullptr);
 
-          // Remove the existing items and put in the new items
-          int newNumOptions = numOptions - 1 + NEW_MENU_ITEMS.size();
+            // newNameList = new System.Guid[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
+            reframework::API::ManagedObject *newNameList = api->create_managed_array(guidType, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
+            assert(newNameList != nullptr);
+            newNameList->add_ref();
 
-          /// TODO: Check menu already extended
+            // newGuidList = new System.Guid[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
+            reframework::API::ManagedObject *newGuidList = api->create_managed_array(guidType, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
+            assert(newGuidList != nullptr);
+            newGuidList->add_ref();
 
-          // get System.Guid type
-          reframework::API::TypeDefinition *guidType = tdb->find_type("System.Guid");
-          assert(guidType != nullptr);
+            // newCursorIndexList = new System.Int32[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
+            reframework::API::ManagedObject *newCursorIndexList = api->create_managed_array(int32Type, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
+            assert(newCursorIndexList != nullptr);
+            newCursorIndexList->add_ref();
 
-          // get System.Int32 type
-          reframework::API::TypeDefinition *int32Type = tdb->find_type("System.Int32");
-          assert(int32Type != nullptr);
+            // newCursorMaxList = new System.Int32[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
+            reframework::API::ManagedObject *newCursorMaxList = api->create_managed_array(int32Type, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
+            assert(newCursorMaxList != nullptr);
+            newCursorMaxList->add_ref();
 
-          // get System.Array type
-          reframework::API::TypeDefinition *arrayType = tdb->find_type("System.Array");
-          assert(arrayType != nullptr);
+            // newCursorNameListList = new System.Array[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
+            reframework::API::ManagedObject *newCursorNameListList = api->create_managed_array(arrayType, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
+            assert(newCursorNameListList != nullptr);
+            newCursorNameListList->add_ref();
 
-          // newNameList = new System.Guid[newNumOptions]
-          reframework::API::ManagedObject *newNameList = api->create_managed_array(guidType, newNumOptions);
-          assert(newNameList != nullptr);
-          newNameList->add_ref();
-
-          // newGuidList = new System.Guid[newNumOptions]
-          reframework::API::ManagedObject *newGuidList = api->create_managed_array(guidType, newNumOptions);
-          assert(newGuidList != nullptr);
-          newGuidList->add_ref();
-
-          // newCursorIndexList = new System.Int32[newNumOptions]
-          reframework::API::ManagedObject *newCursorIndexList = api->create_managed_array(int32Type, newNumOptions);
-          assert(newCursorIndexList != nullptr);
-          newCursorIndexList->add_ref();
-
-          // newCursorMaxList = new System.Int32[newNumOptions]
-          reframework::API::ManagedObject *newCursorMaxList = api->create_managed_array(int32Type, newNumOptions);
-          assert(newCursorMaxList != nullptr);
-          newCursorMaxList->add_ref();
-
-          // newCursorNameListList = new System.Array[newNumOptions]
-          reframework::API::ManagedObject *newCursorNameListList = api->create_managed_array(arrayType, newNumOptions);
-          assert(newCursorNameListList != nullptr);
-          newCursorNameListList->add_ref();
-
-          // delete cursorNameListList[bgmSelectionIdx]
-          /*
-          x = cursorNameListList->invoke(
-              "get_Item",
-              {
-                  (void *)(intptr_t)bgmSelectionIdx,
-              });
-          reframework::API::ManagedObject *cursorNameList = (reframework::API::ManagedObject *)x.ptr;
-          assert(cursorNameList != nullptr);
-          if (cursorNameList != nullptr)
-          {
-              cursorNameList->release();
-          }
-          */ /*
-
-           // Fill new arrays
-           for (int newIdx = 0; newIdx < newNumOptions; ++newIdx)
-           {
-               Guid nameGuid;
-               Guid descriptionGuid;
-               std::int32_t cursorIdx;
-               std::int32_t cursorMax;
-               reframework::API::ManagedObject *cursorNameList = nullptr;
-
-               int oldIdx;
-               if (newIdx < bgmSelectionIdx)
-               {
-                   oldIdx = newIdx;
-               }
-               else if (newIdx < bgmSelectionIdx + NEW_MENU_ITEMS.size())
-               {
-                   oldIdx = -1;
-               }
-               else
-               {
-                   oldIdx = newIdx - (newNumOptions - numOptions);
-               }
-
-               if (oldIdx != -1)
-               {
-                   // get nameList[oldIdx]
-                   x = nameList->invoke(
-                       "get_Item",
-                       {
-                           (void *)(intptr_t)oldIdx,
-                       });
-                   nameGuid = *(Guid *)&x;
-
-                   // get guidList[oldIdx]
-                   x = guidList->invoke(
-                       "get_Item",
-                       {
-                           (void *)(intptr_t)oldIdx,
-                       });
-                   descriptionGuid = *(Guid *)&x;
-
-                   // get cursorIndexList[oldIdx]
-                   x = cursorIndexList->invoke(
-                       "get_Item",
-                       {
-                           (void *)(intptr_t)oldIdx,
-                       });
-                   cursorIdx = (int32_t)x.dword;
-
-                   // get cursorMaxList[oldIdx]
-                   x = cursorMaxList->invoke(
-                       "get_Item",
-                       {
-                           (void *)(intptr_t)oldIdx,
-                       });
-                   cursorMax = (int32_t)x.dword;
-
-                   /*
-                   // get cursorNameListList[oldIdx]
-                   x = cursorNameListList->invoke(
-                       "get_Item",
-                       {
-                           (void *)(intptr_t)oldIdx,
-                       });
-                   cursorNameList = (reframework::API::ManagedObject *)x.ptr;
-                   */
-            /*
-        }
-        else
-        {
-            // get new item
-            nameGuid = NEW_MENU_ITEMS[newIdx - bgmSelectionIdx].NameGuid;
-            descriptionGuid = NEW_MENU_ITEMS[newIdx - bgmSelectionIdx].DescriptionGuid;
-            cursorIdx = *NEW_MENU_ITEMS[newIdx - bgmSelectionIdx].SettingPtr;
-            cursorMax = NEW_BGM_SELECTION_OPTIONS.size();
-
-            // build new cursor name list
-            // cursorNameList = new System.Array[newNumOptions]
-            cursorNameList = api->create_managed_array(arrayType, cursorMax);
-            assert(cursorNameList != nullptr);
-            cursorNameList->add_ref();
-
-            // fill new cursor name list
-            for (int j = 0; j < cursorMax; j++)
+            // Fill new arrays
+            for (int i = 0; i < _newSoundOptionsIdx + NEW_MENU_ITEMS.size(); ++i)
             {
-                // set cursorNameList[j]
-                cursorNameList->invoke(
+                Guid nameGuid;
+                Guid descriptionGuid;
+                std::int32_t cursorIdx;
+                std::int32_t cursorMax;
+                reframework::API::ManagedObject *cursorNameList = nullptr;
+
+                if (i < _newSoundOptionsIdx)
+                {
+                    // get nameList[i]
+                    x = nameList->invoke(
+                        "get_Item",
+                        {
+                            (void *)(intptr_t)i,
+                        });
+                    nameGuid = *(Guid *)&x;
+
+                    // get guidList[i]
+                    x = guidList->invoke(
+                        "get_Item",
+                        {
+                            (void *)(intptr_t)i,
+                        });
+                    descriptionGuid = *(Guid *)&x;
+
+                    // get cursorIndexList[i]
+                    x = cursorIndexList->invoke(
+                        "get_Item",
+                        {
+                            (void *)(intptr_t)i,
+                        });
+                    cursorIdx = (int32_t)x.dword;
+
+                    // get cursorMaxList[i]
+                    x = cursorMaxList->invoke(
+                        "get_Item",
+                        {
+                            (void *)(intptr_t)i,
+                        });
+                    cursorMax = (int32_t)x.dword;
+
+                    // get cursorNameListList[i]
+                    x = cursorNameListList->invoke(
+                        "get_Item",
+                        {
+                            (void *)(intptr_t)i,
+                        });
+                    cursorNameList = (reframework::API::ManagedObject *)x.ptr;
+                }
+                else
+                {
+                    // get new item
+                    nameGuid = NEW_MENU_ITEMS[i - _newSoundOptionsIdx].NameGuid;
+                    descriptionGuid = NEW_MENU_ITEMS[i - _newSoundOptionsIdx].DescriptionGuid;
+                    cursorIdx = *NEW_MENU_ITEMS[i - _newSoundOptionsIdx].SettingPtr;
+                    cursorMax = NEW_BGM_SELECTION_OPTIONS.size();
+
+                    // build new cursor name list
+                    // cursorNameList = new System.Array[newNumOptions]
+                    cursorNameList = api->create_managed_array(arrayType, cursorMax);
+                    assert(cursorNameList != nullptr);
+                    cursorNameList->add_ref();
+
+                    // fill new cursor name list
+                    for (int j = 0; j < cursorMax; j++)
+                    {
+                        // set cursorNameList[j]
+                        cursorNameList->invoke(
+                            "set_Item",
+                            {
+                                (void *)(intptr_t)j,
+                                (void *)&NEW_BGM_SELECTION_OPTIONS[j],
+                            });
+                    }
+                }
+
+                // set newNameList[i]
+                newNameList->invoke(
                     "set_Item",
                     {
-                        (void *)(intptr_t)j,
-                        &NEW_BGM_SELECTION_OPTIONS[j],
+                        (void *)(intptr_t)i,
+                        &nameGuid,
                     });
-                }
+
+                // set newGuidList[i]
+                newGuidList->invoke(
+                    "set_Item",
+                    {
+                        (void *)(intptr_t)i,
+                        &descriptionGuid,
+                    });
+
+                // set newCursorIndexList[i]
+                newCursorIndexList->invoke(
+                    "set_Item",
+                    {
+                        (void *)(intptr_t)i,
+                        (void *)(intptr_t)cursorIdx,
+                    });
+
+                // set newCursorMaxList[i]
+                newCursorMaxList->invoke(
+                    "set_Item",
+                    {
+                        (void *)(intptr_t)i,
+                        (void *)(intptr_t)cursorMax,
+                    });
+
+                // set newCursorNameListList[i]
+                newCursorNameListList->invoke(
+                    "set_Item",
+                    {
+                        (void *)(intptr_t)i,
+                        cursorNameList,
+                    });
             }
 
-            // set newNameList[newIdx]
-            newNameList->invoke(
-            "set_Item",
-            {
-                (void *)(intptr_t)newIdx,
-                &nameGuid,
-            });
+            // set menuTblOption.NameList
+            nameList->release();
+            *nameList_ptr = newNameList;
 
-            // set newGuidList[newIdx]
-            newGuidList->invoke(
-            "set_Item",
-            {
-                (void *)(intptr_t)newIdx,
-                &descriptionGuid,
-            });
+            // set menuTblOption.GuidList
+            guidList->release();
+            *guidList_ptr = newGuidList;
 
-            // set newCursorIndexList[newIdx]
-            newCursorIndexList->invoke(
-            "set_Item",
-            {
-                (void *)(intptr_t)newIdx,
-                (void *)(intptr_t)cursorIdx,
-            });
+            // set menuTblOption._CursolIndex
+            cursorIndexList->release();
+            *cursorIndexList_ptr = newCursorIndexList;
 
-            // set newCursorMaxList[newIdx]
-            newCursorMaxList->invoke(
-            "set_Item",
-            {
-                (void *)(intptr_t)newIdx,
-                (void *)(intptr_t)cursorMax,
-            });
-
-            // set newCursorNameListList[newIdx]
-            newCursorNameListList->invoke(
-            "set_Item",
-            {
-                (void *)(intptr_t)newIdx,
-                cursorNameList,
-            });
-        }
-
-        // set menuTblOption.NameList
-        nameList->release();
-        *nameList_ptr = newNameList;
-
-        // set menuTblOption.GuidList
-        guidList->release();
-        *guidList_ptr = newGuidList;
-
-        // set menuTblOption._CursolIndex
-        cursorIndexList->release();
-        *cursorIndexList_ptr = newCursorIndexList;
-
-        // set menuTblOption.CursolMax
-        cursorMaxList->release();
-        *cursorMaxList_ptr = newCursorMaxList;
-        */
-
-            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+            // set menuTblOption.CursolMax
+            cursorMaxList->release();
+            *cursorMaxList_ptr = newCursorMaxList;
         },
-        nullptr,
         false);
 
     // Hook method which sets up the Audio menu
@@ -637,15 +570,34 @@ false);
             reframework::API::ManagedObject *nameList = *nameList_ptr;
             assert(nameList != nullptr);
 
+            // get menu._CursolNameList
+            reframework::API::ManagedObject **cursorNameListList_ptr = menu->get_field<reframework::API::ManagedObject *>("_CursolNameList");
+            assert(cursorNameListList_ptr != nullptr);
+            reframework::API::ManagedObject *cursorNameListList = *cursorNameListList_ptr;
+            assert(cursorNameListList != nullptr);
+
             // call nameList.get_Length()
             x = nameList->invoke(
                 "get_Length",
                 {});
             std::int32_t nameListLength = (std::int32_t)x.dword;
 
-            // create temporary string
+            // get via.gui.asset.ui00030000._ITM_List_Item_._Pattern_Slider
+            reframework::API::TypeDefinition *itmListItemType = tdb->find_type("via.gui.asset.ui00030000._ITM_List_Item_");
+            assert(itmListItemType != nullptr);
+            reframework::API::Field *patternSliderField = itmListItemType->find_field("_Pattern_Slider");
+            assert(patternSliderField != nullptr);
+            std::uint32_t *patternSlider_ptr = (std::uint32_t *)patternSliderField->get_data_raw(nullptr);
+            assert(patternSlider_ptr != nullptr);
+            std::uint32_t patternSlider = *patternSlider_ptr;
+
+            // create temporary strings
             reframework::API::ManagedObject *str_MsgId_Option_List_Item_Name = api->create_managed_string(L"MsgId_Option_List_Item_Name");
             assert(str_MsgId_Option_List_Item_Name != nullptr);
+            reframework::API::ManagedObject *str_ObjPath_PNL_Option_List_Item_LR_Selection_Path = api->create_managed_string(L"ObjPath_PNL_Option_List_Item_LR_Selection_Path");
+            assert(str_ObjPath_PNL_Option_List_Item_LR_Selection_Path != nullptr);
+            reframework::API::ManagedObject *str_ObjPath_PNL_Option_List_Item_Slider_Path = api->create_managed_string(L"ObjPath_PNL_Option_List_Item_Slider_Path");
+            assert(str_ObjPath_PNL_Option_List_Item_Slider_Path != nullptr);
 
             for (std::size_t i = 0; i < itemInstTblLength; ++i)
             {
@@ -675,6 +627,8 @@ false);
                 assert(parameterVariable != nullptr);
 
                 Guid nameGuid;
+                bool isSlider = false;
+
                 if (listIndex >= _newSoundOptionsIdx && listIndex < _newSoundOptionsIdx + NEW_MENU_ITEMS.size())
                 {
                     // One of our new options
@@ -683,17 +637,27 @@ false);
                 else if (listIndex >= 0 && listIndex < nameListLength)
                 {
                     // One of the existing options
-                    // get nameList[selectedIndex]
+                    // get nameList[listIndex]
                     x = nameList->invoke(
                         "get_Item",
                         {
                             (void *)(intptr_t)listIndex,
                         });
                     nameGuid = *(Guid *)&x;
+
+                    // get cursorNameListList[listIndex]
+                    x = cursorNameListList->invoke(
+                        "get_Item",
+                        {
+                            (void *)(intptr_t)listIndex,
+                        });
+                    reframework::API::ManagedObject *cursorNameList = (reframework::API::ManagedObject *)x.ptr;
+                    // assume option is a slider type if it has no name list
+                    isSlider = cursorNameList == nullptr;
                 }
                 else
                 {
-                    // New option that wasn't added by us, skip
+                    // Option not visible or not added by us, skip
                     continue;
                 }
 
@@ -703,6 +667,24 @@ false);
                     {
                         &nameGuid,
                     });
+
+                // assume option is a slider type if it has no name list
+                if (isSlider)
+                {
+                    // call select.set_StatePattern()
+                    selectItem->invoke(
+                        "set_StatePattern(System.UInt32)",
+                        {
+                            (void *)(intptr_t)patternSlider,
+                        });
+
+                    // call menu.updateSlider()
+                    menu->invoke(
+                        "updateSlider(System.Int32)",
+                        {
+                            (void *)(intptr_t)listIndex,
+                        });
+                }
             }
 
             return REFRAMEWORK_HOOK_CALL_ORIGINAL;
