@@ -25,45 +25,72 @@
 struct MenuItem
 {
 public:
-    Guid NameGuid;
-    Guid DescriptionGuid;
+    const Guid NameGuid;
+    const Guid DescriptionGuid;
+    const std::vector<Guid> *SelectionOptions;
     uint8_t *SettingPtr;
 };
 
 static std::uint8_t _bgmFieldSetting = 0;
 static std::uint8_t _bgmBattleSetting = 0;
+static std::uint8_t _bgmSetting3 = 0;
+static std::uint8_t _bgmSetting4 = 0;
+static std::uint8_t _bgmSetting5 = 0;
+static std::uint8_t _bgmSetting6 = 0;
 
 static bool _doResizeSoundList = false;
-static bool _isUpdateListPage = false;
 
 static int _newSoundOptionsIdx = -1;
+
+static const std::vector<Guid> NEW_BGM_SELECTION_OPTIONS = {
+    Guid(L"8095b996-deab-419a-b034-5d21fa0aee21"), // 100%
+    Guid(L"3a33dbca-f51f-4c3e-bf72-9041cdec608b"), // 200%
+    Guid(L"2aebe1ff-927d-4131-8c1a-9e4030feb348"), // 300%
+    Guid(L"6049ca56-9c49-4300-9b99-78f16e32504b"), // 400%
+    Guid(L"81468531-34ae-4e65-812d-ccb48b78b158"), // 500%
+};
 
 static const std::vector<MenuItem> NEW_MENU_ITEMS = {
     MenuItem{
         .NameGuid = Guid(L"9dd4d43c-4b86-48f5-9b6f-d1816656760f"),
         .DescriptionGuid = Guid(L"45cf3ad4-b931-4885-a4fe-8e26be1b1475"),
+        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
         .SettingPtr = &_bgmFieldSetting,
     },
     MenuItem{
         .NameGuid = Guid(L"aeed2fdf-2495-4fe7-9b9d-afdd92a1a631"),
         .DescriptionGuid = Guid(L"295acd67-b442-4328-af81-505199b3194a"),
+        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
         .SettingPtr = &_bgmBattleSetting,
     },
-};
-
-static const std::vector<Guid> NEW_BGM_SELECTION_OPTIONS = {
-    Guid(L"225f5de3-b958-4c53-b33c-3d2ff2bad06f"), // Original
-    Guid(L"37ea887b-9d75-42b2-bd0b-2806cb6d688a"), // Arranged
-    Guid(L"09d503da-bb7a-49c7-b920-844b91b4cba1"), // Favorites
-    Guid(L"0f2bff24-8e0d-4e6d-851f-0ec36763e53e"), // Off
+    MenuItem{
+        .NameGuid = Guid(L"5327f1b2-51f8-4b7d-9510-d90b2cedd1f2"),
+        .DescriptionGuid = Guid(L"7acea6b1-a466-45b9-890a-74ecbe0adee1"),
+        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
+        .SettingPtr = &_bgmSetting3,
+    },
+    MenuItem{
+        .NameGuid = Guid(L"6e45bcd6-0f76-4576-8b42-9ac87762328e"),
+        .DescriptionGuid = Guid(L"0a12f712-9d90-42b3-bb90-f123dedfc6b3"),
+        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
+        .SettingPtr = &_bgmSetting4,
+    },
+    MenuItem{
+        .NameGuid = Guid(L"43293d60-97ef-4e61-9de7-abafe61c42d8"),
+        .DescriptionGuid = Guid(L"f0a6ffdd-413a-4a22-8382-8fc8a6e4e159"),
+        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
+        .SettingPtr = &_bgmSetting5,
+    },
+    MenuItem{
+        .NameGuid = Guid(L"f3240d92-582d-4013-ab24-ae564c872d85"),
+        .DescriptionGuid = Guid(L"1c09fcc8-3f61-4ed1-bd4c-f2742f84c432"),
+        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
+        .SettingPtr = &_bgmSetting6,
+    },
 };
 
 static reframework::API::ManagedObject *_battlePlayer = nullptr;
 static reframework::API::ManagedObject *_menuTblOption = nullptr;
-
-static void soundUpdateList(void)
-{
-}
 
 extern "C" __declspec(dllexport) void reframework_plugin_required_version(REFrameworkPluginVersion *version)
 {
@@ -96,7 +123,7 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
 
     // Wait for Launcher to initialize
     reframework::API::ManagedObject *launcher = nullptr;
-    for (int r = 0; r < 100; ++r)
+    while (true)
     {
         launcher = api->get_managed_singleton("app.Launcher");
         if (launcher != nullptr)
@@ -297,7 +324,7 @@ false);
             assert(newCursorMaxList != nullptr);
             newCursorMaxList->add_ref();
 
-            // newCursorNameListList = new System.Array[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
+            // newCursorNameListList = new System.Array<System.Array>[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
             reframework::API::ManagedObject *newCursorNameListList = api->create_managed_array(arrayType, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
             assert(newCursorNameListList != nullptr);
             newCursorNameListList->add_ref();
@@ -358,12 +385,18 @@ false);
                     // get new item
                     nameGuid = NEW_MENU_ITEMS[i - _newSoundOptionsIdx].NameGuid;
                     descriptionGuid = NEW_MENU_ITEMS[i - _newSoundOptionsIdx].DescriptionGuid;
+                    cursorMax = NEW_MENU_ITEMS[i - _newSoundOptionsIdx].SelectionOptions->size();
                     cursorIdx = *NEW_MENU_ITEMS[i - _newSoundOptionsIdx].SettingPtr;
-                    cursorMax = NEW_BGM_SELECTION_OPTIONS.size();
+
+                    // if cursor is out of bounds reset to default
+                    if (cursorIdx < 0 || cursorIdx >= cursorMax)
+                    {
+                        *NEW_MENU_ITEMS[i - _newSoundOptionsIdx].SettingPtr = cursorIdx = 0;
+                    }
 
                     // build new cursor name list
-                    // cursorNameList = new System.Array[newNumOptions]
-                    cursorNameList = api->create_managed_array(arrayType, cursorMax);
+                    // cursorNameList = new System.Array<System.Guid>[newNumOptions]
+                    cursorNameList = api->create_managed_array(guidType, cursorMax);
                     assert(cursorNameList != nullptr);
                     cursorNameList->add_ref();
 
@@ -371,11 +404,12 @@ false);
                     for (int j = 0; j < cursorMax; j++)
                     {
                         // set cursorNameList[j]
+                        Guid cursorName = (*NEW_MENU_ITEMS[i - _newSoundOptionsIdx].SelectionOptions)[j];
                         cursorNameList->invoke(
                             "set_Item",
                             {
                                 (void *)(intptr_t)j,
-                                (void *)&NEW_BGM_SELECTION_OPTIONS[j],
+                                (void *)&cursorName,
                             });
                     }
                 }
@@ -603,12 +637,20 @@ false);
                 // create temporary strings
                 reframework::API::ManagedObject *str_MsgId_Option_List_Item_Name = api->create_managed_string(L"MsgId_Option_List_Item_Name");
                 reframework::API::ManagedObject *str_ObjPath_PNL_Option_List_Item_Slider_Path = api->create_managed_string(L"ObjPath_PNL_Option_List_Item_Slider_Path");
+                reframework::API::ManagedObject *str_ObjPath_PNL_Option_List_Item_LR_Selection_Path = api->create_managed_string(L"ObjPath_PNL_Option_List_Item_LR_Selection_Path");
                 reframework::API::ManagedObject *str_Float_Slider_Value_Init = api->create_managed_string(L"Float_Slider_Value_Init");
                 reframework::API::ManagedObject *str_Float_Slider_Value_Current = api->create_managed_string(L"Float_Slider_Value_Current");
+                reframework::API::ManagedObject *str_MsgId_LR_Selection_Button_Message = api->create_managed_string(L"MsgId_LR_Selection_Button_Message");
+                reframework::API::ManagedObject *str_Bool_LR_Selection_Cursor_Left_Visible = api->create_managed_string(L"Bool_LR_Selection_Cursor_Left_Visible");
+                reframework::API::ManagedObject *str_Bool_LR_Selection_Cursor_Right_Visible = api->create_managed_string(L"Bool_LR_Selection_Cursor_Right_Visible");
                 assert(str_MsgId_Option_List_Item_Name != nullptr);
                 assert(str_ObjPath_PNL_Option_List_Item_Slider_Path != nullptr);
+                assert(str_ObjPath_PNL_Option_List_Item_LR_Selection_Path != nullptr);
                 assert(str_Float_Slider_Value_Init != nullptr);
                 assert(str_Float_Slider_Value_Current != nullptr);
+                assert(str_MsgId_LR_Selection_Button_Message != nullptr);
+                assert(str_Bool_LR_Selection_Cursor_Left_Visible != nullptr);
+                assert(str_Bool_LR_Selection_Cursor_Right_Visible != nullptr);
 
                 for (std::size_t i = 0; i < itemInstTblLength; ++i)
                 {
@@ -646,6 +688,13 @@ false);
                         });
                     Guid nameGuid = *(Guid *)&x;
 
+                    // call parameterVariable.set_ValueMessageId()
+                    parameterVariable->invoke(
+                        "set_ValueMessageId(System.Guid)",
+                        {
+                            &nameGuid,
+                        });
+
                     // get cursorNameListList[listIndex]
                     assert(listIndex >= 0 && listIndex <= cursorNameListList_Length);
                     x = cursorNameListList->invoke(
@@ -655,12 +704,23 @@ false);
                         });
                     reframework::API::ManagedObject *cursorNameList = (reframework::API::ManagedObject *)x.ptr;
 
-                    // call parameterVariable.set_ValueMessageId()
-                    parameterVariable->invoke(
-                        "set_ValueMessageId(System.Guid)",
+                    // get cursorIndexList[listIndex]
+                    assert(listIndex >= 0 && listIndex <= cursorIndexList_Length);
+                    x = cursorIndexList->invoke(
+                        "get_Item",
                         {
-                            &nameGuid,
+                            (void *)(intptr_t)listIndex,
                         });
+                    std::int32_t cursorIndex = (std::int32_t)x.dword;
+
+                    // get cursorMaxList[listIndex]
+                    assert(listIndex >= 0 && listIndex <= cursorMaxList_Length);
+                    x = cursorMaxList->invoke(
+                        "get_Item",
+                        {
+                            (void *)(intptr_t)listIndex,
+                        });
+                    std::int32_t cursorMax = (std::int32_t)x.dword;
 
                     // assume option is a slider type if it has no name list
                     if (cursorNameList == nullptr)
@@ -718,15 +778,6 @@ false);
                             });
                         double volumeInitValue = x.d;
 
-                        // get cursorMaxList[listIndex]
-                        assert(listIndex >= 0 && listIndex <= cursorMaxList_Length);
-                        x = cursorMaxList->invoke(
-                            "get_Item",
-                            {
-                                (void *)(intptr_t)listIndex,
-                            });
-                        std::int32_t cursorMax = (std::int32_t)x.dword;
-
                         // call paramVariable_floatSliderValueInit.set_ValueFloat()
                         double sliderValueInit = volumeInitValue / (cursorMax - 1) * 100.0;
                         paramVariable_floatSliderValueInit->invoke(
@@ -744,15 +795,6 @@ false);
                         reframework::API::ManagedObject *paramVariable_floatSliderValueCurrent = (reframework::API::ManagedObject *)x.ptr;
                         assert(paramVariable_floatSliderValueCurrent != nullptr);
 
-                        // get cursorIndexList[listIndex]
-                        assert(listIndex >= 0 && listIndex <= cursorIndexList_Length);
-                        x = cursorIndexList->invoke(
-                            "get_Item",
-                            {
-                                (void *)(intptr_t)listIndex,
-                            });
-                        std::int32_t cursorIndex = (std::int32_t)x.dword;
-
                         // call paramVariable_floatSliderValueCurrent.set_ValueFloat()
                         double sliderValueCurrent = (double)cursorIndex / (cursorMax - 1) * 100.0;
                         paramVariable_floatSliderValueCurrent->invoke(
@@ -768,6 +810,94 @@ false);
                             "set_StatePattern(System.UInt32)",
                             {
                                 (void *)(intptr_t)patternLRSelection,
+                            });
+
+                        // call cursorNameList.get_Length()
+                        x = cursorNameList->invoke(
+                            "get_Length",
+                            {});
+                        std::int32_t cursorNameList_Length = (std::int32_t)x.dword;
+
+                        // call selectItem.getParameterLegacy()
+                        x = selectItem->invoke(
+                            "getParameterLegacy(System.String)",
+                            {
+                                str_ObjPath_PNL_Option_List_Item_LR_Selection_Path,
+                            });
+                        parameterVariable = (reframework::API::ManagedObject *)x.ptr;
+                        assert(parameterVariable != nullptr);
+
+                        // call parameterVariable.get_ValueObjectPath()
+                        x = parameterVariable->invoke(
+                            "get_ValueObjectPath",
+                            {});
+                        reframework::API::ManagedObject *objPath = (reframework::API::ManagedObject *)x.ptr;
+                        assert(objPath != nullptr);
+
+                        // call selectItem.getObject
+                        x = selectItem->invoke(
+                            "getObject(System.String)",
+                            {
+                                objPath,
+                            });
+                        reframework::API::ManagedObject *selectionPanel = (reframework::API::ManagedObject *)x.ptr;
+                        assert(selectionPanel != nullptr);
+
+                        // call selectItem.getParameterLegacy()
+                        x = selectionPanel->invoke(
+                            "getParameterLegacy(System.String)",
+                            {
+                                str_MsgId_LR_Selection_Button_Message,
+                            });
+                        reframework::API::ManagedObject *parameterVariable_buttonMessage = (reframework::API::ManagedObject *)x.ptr;
+                        assert(parameterVariable_buttonMessage != nullptr);
+
+                        // get cursorNameList[listIndex]
+                        assert(cursorIndex >= 0 && cursorIndex < cursorNameList_Length);
+                        x = cursorNameList->invoke(
+                            "get_Item",
+                            {
+                                (void *)(intptr_t)cursorIndex,
+                            });
+                        Guid cursorGuid = *(Guid *)&x;
+
+                        // call parameterVariable.set_ValueMessageId()
+                        parameterVariable_buttonMessage->invoke(
+                            "set_ValueMessageId(System.Guid)",
+                            {
+                                &cursorGuid,
+                            });
+
+                        // call selectItem.getParameterLegacy()
+                        x = selectionPanel->invoke(
+                            "getParameterLegacy(System.String)",
+                            {
+                                str_Bool_LR_Selection_Cursor_Left_Visible,
+                            });
+                        reframework::API::ManagedObject *parameterVariable_leftVisible = (reframework::API::ManagedObject *)x.ptr;
+                        assert(parameterVariable_leftVisible != nullptr);
+
+                        // call parameterVariable_leftVisible.set_ValueBool()
+                        parameterVariable_leftVisible->invoke(
+                            "set_ValueBool(System.Boolean)",
+                            {
+                                (void *)(intptr_t)(cursorIndex > 0),
+                            });
+
+                        // call selectItem.getParameterLegacy()
+                        x = selectionPanel->invoke(
+                            "getParameterLegacy(System.String)",
+                            {
+                                str_Bool_LR_Selection_Cursor_Right_Visible,
+                            });
+                        reframework::API::ManagedObject *parameterVariable_rightVisible = (reframework::API::ManagedObject *)x.ptr;
+                        assert(parameterVariable_rightVisible != nullptr);
+
+                        // call parameterVariable_rightVisible.set_ValueBool()
+                        parameterVariable_rightVisible->invoke(
+                            "set_ValueBool(System.Boolean)",
+                            {
+                                (void *)(intptr_t)(cursorIndex < cursorMax - 1),
                             });
                     }
                 }
@@ -810,6 +940,7 @@ false);
                     });
             };
 
+            auto &api = reframework::API::get();
             reframework::InvokeRet x;
 
             reframework::API::ManagedObject *menu = (reframework::API::ManagedObject *)argv[1];
@@ -817,6 +948,7 @@ false);
             // get menu._SelectedIndex
             std::int32_t *selectedIndex_ptr = menu->get_field<std::int32_t>("_SelectedIndex");
             assert(selectedIndex_ptr != nullptr);
+            std::int32_t selectedIndex = *selectedIndex_ptr;
 
             // get menu._SoundList
             reframework::API::ManagedObject **soundList_ptr = menu->get_field<reframework::API::ManagedObject *>("_SoundList");
@@ -863,6 +995,98 @@ false);
             {
                 updateList(menu);
                 updateGuidMessage(menu);
+                return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+            }
+
+            // get menu._CursolIndex
+            reframework::API::ManagedObject **cursorIndexList_ptr = menu->get_field<reframework::API::ManagedObject *>("_CursolIndex");
+            assert(cursorIndexList_ptr != nullptr);
+            reframework::API::ManagedObject *cursorIndexList = *cursorIndexList_ptr;
+            assert(cursorIndexList != nullptr);
+
+            // get menu.CursolMax
+            reframework::API::ManagedObject **cursorMaxList_ptr = menu->get_field<reframework::API::ManagedObject *>("CursolMax");
+            assert(cursorMaxList_ptr != nullptr);
+            reframework::API::ManagedObject *cursorMaxList = *cursorMaxList_ptr;
+            assert(cursorMaxList != nullptr);
+
+            // get cursorIndexList.Length
+            x = cursorIndexList->invoke(
+                "get_Length",
+                {});
+            std::int32_t cursorIndexList_Length = (std::int32_t)x.dword;
+
+            // get cursorMaxList.Length
+            x = cursorMaxList->invoke(
+                "get_Length",
+                {});
+            std::int32_t cursorMaxList_Length = (std::int32_t)x.dword;
+
+            // get cursorIndexList[selectedIndex]
+            assert(selectedIndex >= 0 && selectedIndex < cursorIndexList_Length);
+            x = cursorIndexList->invoke(
+                "get_Item",
+                {
+                    (void *)(intptr_t)selectedIndex,
+                });
+            std::int32_t cursorIndex = (std::int32_t)x.dword;
+
+            // get cursorMaxList[selectedIndex]
+            assert(selectedIndex >= 0 && selectedIndex < cursorMaxList_Length);
+            x = cursorMaxList->invoke(
+                "get_Item",
+                {
+                    (void *)(intptr_t)selectedIndex,
+                });
+            std::int32_t cursorMax = (std::int32_t)x.dword;
+
+            // call menu.isUpdateSelectedItem()
+            // returns true if different value chosen for selected item and updates cursorIndex
+            // The game can directly pass &cursorIndexList[selectedIndex], but we can't,
+            // so we have to use the temporary variable
+            x = menu->invoke(
+                "isUpdateSelectedItem(System.Int32, System.Int32, System.Boolean)",
+                {
+                    &cursorIndex, // passed by ref
+                    (void *)(intptr_t)cursorMax,
+                    (void *)(intptr_t)false,
+                });
+            bool isUpdateSelectedItem = x.byte;
+
+            if (isUpdateSelectedItem)
+            {
+                // set cursorIndexList[selectedIndex]
+                x = cursorIndexList->invoke(
+                    "set_Item",
+                    {
+                        (void *)(intptr_t)selectedIndex,
+                        (void *)(intptr_t)cursorIndex,
+                    });
+
+                // The game only updates the selected item, but this is probably fine too
+                updateList(menu);
+
+                // Propagate settings
+                // call menu->updateVolume()
+                menu->invoke(
+                    "updateVolume",
+                    {});
+
+                // call menu->convertCusrotIndexToBGMType()
+                x = menu->invoke(
+                    "convertCusrotIndexToBGMType",
+                    {});
+                std::int32_t bgmType = (std::int32_t)x.dword;
+
+                // get app.Launcher singleton
+                reframework::API::ManagedObject *launcher = api->get_managed_singleton("app.Launcher");
+                assert(launcher != nullptr);
+
+                // set launcher.bgmType
+                std::int32_t *bgmType_ptr = launcher->get_field<std::int32_t>("bgmType");
+                assert(bgmType_ptr != nullptr);
+                *bgmType_ptr = bgmType;
+
                 return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
             }
 
