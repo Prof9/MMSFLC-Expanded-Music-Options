@@ -34,7 +34,6 @@ static std::uint8_t _bgmFieldSetting = 0;
 static std::uint8_t _bgmBattleSetting = 0;
 
 static bool _doResizeSoundList = false;
-static bool _inSoundDoUpdate = false;
 static bool _isUpdateListPage = false;
 
 static int _newSoundOptionsIdx = -1;
@@ -186,7 +185,7 @@ false);
 */
 
     // Hook method which is called when Settings menu is initialized
-    // Here we modify the layout of the damage reduction setting to add additional rates
+    // Here we modify the Audio menu to add our new options
     reframework::API::Method *startMethod = tdb->find_method("app.GUILauncherOption", "start()");
     assert(startMethod != nullptr);
     startMethod->add_hook(
@@ -437,6 +436,10 @@ false);
             // set menuTblOption.CursolMax
             cursorMaxList->release();
             *cursorMaxList_ptr = newCursorMaxList;
+
+            // set menuTblOption._CursolNameList
+            cursorNameListList->release();
+            *cursorNameListList_ptr = newCursorNameListList;
         },
         false);
 
@@ -491,223 +494,329 @@ false);
         nullptr, false);
 
     // Hook method which is called every tick while in Audio menu
-    // Set a flag that we are updating the Audio menu (needed for other hooks)
+    // We basically need to replace this whole function with one which can handle list scrolling
     reframework::API::Method *doUpdateMethod = tdb->find_method("app.cLauncherOptionSound", "doUpdate()");
     assert(doUpdateMethod != nullptr);
     doUpdateMethod->add_hook(
-        [](auto...)
-        {
-            _inSoundDoUpdate = true;
-
-            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-        },
-        [](auto...)
-        {
-            _inSoundDoUpdate = false;
-        },
-        false);
-
-    // Hook method which checks if list needs to be updated
-    // Override size of list (this is hardcoded)
-    reframework::API::Method *isUpdateListMethod = tdb->find_method("app.cLauncherOptionMenuBase", "isUpdateList(System.Int32, System.Int32)");
-    assert(isUpdateListMethod != nullptr);
-    isUpdateListMethod->add_hook(
         [](int argc, void **argv, auto...)
         {
-            if (!_inSoundDoUpdate)
+            auto updateList = [](reframework::API::ManagedObject *menu)
             {
-                return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-            }
+                auto &api = reframework::API::get();
+                auto tdb = api->tdb();
+                reframework::InvokeRet x;
 
-            // Override size of list
-            *(int32_t *)&argv[3] = _newSoundOptionsIdx + NEW_MENU_ITEMS.size();
+                // get menu._SoundList
+                reframework::API::ManagedObject **soundList_ptr = menu->get_field<reframework::API::ManagedObject *>("_SoundList");
+                assert(soundList_ptr != nullptr);
+                reframework::API::ManagedObject *soundList = *soundList_ptr;
+                assert(soundList != nullptr);
 
-            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-        },
-        nullptr, false);
-
-    // Hook method which is called when guide message changes
-    // This can indicate the list was scrolled
-    reframework::API::Method *setGuidMessageMethod = tdb->find_method("app.cLauncherOptionMenuBase", "setGuidMessage(System.Guid)");
-    assert(setGuidMessageMethod != nullptr);
-    setGuidMessageMethod->add_hook(
-        [](int argc, void **argv, auto...)
-        {
-            if (!_inSoundDoUpdate)
-            {
-                return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-            }
-
-            reframework::InvokeRet x;
-            auto &api = reframework::API::get();
-            auto tdb = api->tdb();
-
-            reframework::API::ManagedObject *menu = (reframework::API::ManagedObject *)argv[1];
-
-            // Update list
-            // get menu._SoundList
-            reframework::API::ManagedObject **soundList_ptr = menu->get_field<reframework::API::ManagedObject *>("_SoundList");
-            assert(soundList_ptr != nullptr);
-            reframework::API::ManagedObject *soundList = *soundList_ptr;
-            assert(soundList != nullptr);
-
-            // call soundList.get_ItemInstTbl()
-            x = soundList->invoke(
-                "get_ItemInstTbl",
-                {});
-            reframework::API::ManagedObject *itemInstTbl = (reframework::API::ManagedObject *)x.ptr;
-            assert(itemInstTbl != nullptr);
-
-            // call itemInstTbl.get_Length()
-            x = itemInstTbl->invoke(
-                "get_Length",
-                {});
-            std::int32_t itemInstTblLength = x.dword;
-
-            // get menu.NameList
-            reframework::API::ManagedObject **nameList_ptr = menu->get_field<reframework::API::ManagedObject *>("NameList");
-            assert(nameList_ptr != nullptr);
-            reframework::API::ManagedObject *nameList = *nameList_ptr;
-            assert(nameList != nullptr);
-
-            // get menu._CursolNameList
-            reframework::API::ManagedObject **cursorNameListList_ptr = menu->get_field<reframework::API::ManagedObject *>("_CursolNameList");
-            assert(cursorNameListList_ptr != nullptr);
-            reframework::API::ManagedObject *cursorNameListList = *cursorNameListList_ptr;
-            assert(cursorNameListList != nullptr);
-
-            // call nameList.get_Length()
-            x = nameList->invoke(
-                "get_Length",
-                {});
-            std::int32_t nameListLength = (std::int32_t)x.dword;
-
-            // get via.gui.asset.ui00030000._ITM_List_Item_._Pattern_Slider
-            reframework::API::TypeDefinition *itmListItemType = tdb->find_type("via.gui.asset.ui00030000._ITM_List_Item_");
-            assert(itmListItemType != nullptr);
-            reframework::API::Field *patternSliderField = itmListItemType->find_field("_Pattern_Slider");
-            assert(patternSliderField != nullptr);
-            std::uint32_t *patternSlider_ptr = (std::uint32_t *)patternSliderField->get_data_raw(nullptr);
-            assert(patternSlider_ptr != nullptr);
-            std::uint32_t patternSlider = *patternSlider_ptr;
-
-            // create temporary strings
-            reframework::API::ManagedObject *str_MsgId_Option_List_Item_Name = api->create_managed_string(L"MsgId_Option_List_Item_Name");
-            assert(str_MsgId_Option_List_Item_Name != nullptr);
-            reframework::API::ManagedObject *str_ObjPath_PNL_Option_List_Item_LR_Selection_Path = api->create_managed_string(L"ObjPath_PNL_Option_List_Item_LR_Selection_Path");
-            assert(str_ObjPath_PNL_Option_List_Item_LR_Selection_Path != nullptr);
-            reframework::API::ManagedObject *str_ObjPath_PNL_Option_List_Item_Slider_Path = api->create_managed_string(L"ObjPath_PNL_Option_List_Item_Slider_Path");
-            assert(str_ObjPath_PNL_Option_List_Item_Slider_Path != nullptr);
-
-            for (std::size_t i = 0; i < itemInstTblLength; ++i)
-            {
-                // get itemInstTbl[i]
-                x = itemInstTbl->invoke(
-                    "get_Item",
-                    {
-                        (void *)(intptr_t)i,
-                    });
-                reframework::API::ManagedObject *selectItem = (reframework::API::ManagedObject *)x.ptr;
-                assert(selectItem != nullptr);
-
-                // call selectItem.get_ListIndex()
-                x = selectItem->invoke(
-                    "get_ListIndex",
+                // call soundList.get_ItemInstTbl()
+                x = soundList->invoke(
+                    "get_ItemInstTbl",
                     {});
-                std::int32_t listIndex = (std::int32_t)x.dword;
+                reframework::API::ManagedObject *itemInstTbl = (reframework::API::ManagedObject *)x.ptr;
+                assert(itemInstTbl != nullptr);
 
-                // Normally the game will compute a MurmurHash3 of the string, but this is easier
-                // call selectItem.getParameterLegacy()
-                x = selectItem->invoke(
-                    "getParameterLegacy(System.String)",
-                    {
-                        str_MsgId_Option_List_Item_Name,
-                    });
-                reframework::API::ManagedObject *parameterVariable = (reframework::API::ManagedObject *)x.ptr;
-                assert(parameterVariable != nullptr);
+                // call itemInstTbl.get_Length()
+                x = itemInstTbl->invoke(
+                    "get_Length",
+                    {});
+                std::int32_t itemInstTblLength = x.dword;
 
-                Guid nameGuid;
-                bool isSlider = false;
+                // get menu.NameList
+                reframework::API::ManagedObject **nameList_ptr = menu->get_field<reframework::API::ManagedObject *>("NameList");
+                assert(nameList_ptr != nullptr);
+                reframework::API::ManagedObject *nameList = *nameList_ptr;
+                assert(nameList != nullptr);
 
-                if (listIndex >= _newSoundOptionsIdx && listIndex < _newSoundOptionsIdx + NEW_MENU_ITEMS.size())
+                // get menu._CursolIndex
+                reframework::API::ManagedObject **cursorIndexList_ptr = menu->get_field<reframework::API::ManagedObject *>("_CursolIndex");
+                assert(cursorIndexList_ptr != nullptr);
+                reframework::API::ManagedObject *cursorIndexList = *cursorIndexList_ptr;
+                assert(cursorIndexList != nullptr);
+
+                // get menu.CursolMax
+                reframework::API::ManagedObject **cursorMaxList_ptr = menu->get_field<reframework::API::ManagedObject *>("CursolMax");
+                assert(cursorMaxList_ptr != nullptr);
+                reframework::API::ManagedObject *cursorMaxList = *cursorMaxList_ptr;
+                assert(cursorMaxList != nullptr);
+
+                // get menu._CursolNameList
+                reframework::API::ManagedObject **cursorNameListList_ptr = menu->get_field<reframework::API::ManagedObject *>("_CursolNameList");
+                assert(cursorNameListList_ptr != nullptr);
+                reframework::API::ManagedObject *cursorNameListList = *cursorNameListList_ptr;
+                assert(cursorNameListList != nullptr);
+
+                // get menu.VolumeInitValue
+                reframework::API::ManagedObject **volumeInitValueList_ptr = menu->get_field<reframework::API::ManagedObject *>("VolumeInitValue");
+                assert(volumeInitValueList_ptr != nullptr);
+                reframework::API::ManagedObject *volumeInitValueList = *volumeInitValueList_ptr;
+                assert(volumeInitValueList != nullptr);
+
+                // call nameList.get_Length()
+                x = nameList->invoke(
+                    "get_Length",
+                    {});
+                std::int32_t nameList_Length = (std::int32_t)x.dword;
+
+                // call cursorIndexList.get_Length()
+                x = cursorIndexList->invoke(
+                    "get_Length",
+                    {});
+                std::int32_t cursorIndexList_Length = (std::int32_t)x.dword;
+
+                // call cursorMaxList.get_Length()
+                x = cursorMaxList->invoke(
+                    "get_Length",
+                    {});
+                std::int32_t cursorMaxList_Length = (std::int32_t)x.dword;
+
+                // call cursorNameListList.get_Length()
+                x = cursorNameListList->invoke(
+                    "get_Length",
+                    {});
+                std::int32_t cursorNameListList_Length = (std::int32_t)x.dword;
+
+                // call volumeInitValueList.get_Length()
+                x = volumeInitValueList->invoke(
+                    "get_Length",
+                    {});
+                std::int32_t volumeInitValueList_Length = (std::int32_t)x.dword;
+
+                // get via.gui.asset.ui00030000._ITM_List_Item_._Pattern_Slider
+                // get via.gui.asset.ui00030000._ITM_List_Item_._Pattern_LR_Selection
+                reframework::API::TypeDefinition *itmListItemType = tdb->find_type("via.gui.asset.ui00030000._ITM_List_Item_");
+                assert(itmListItemType != nullptr);
+                reframework::API::Field *patternSliderField = itmListItemType->find_field("_Pattern_Slider");
+                reframework::API::Field *patternLRSelectionField = itmListItemType->find_field("_Pattern_LR_Selection");
+                assert(patternSliderField != nullptr);
+                assert(patternLRSelectionField != nullptr);
+                std::uint32_t *patternSlider_ptr = (std::uint32_t *)patternSliderField->get_data_raw(nullptr);
+                std::uint32_t *patternLRSelection_ptr = (std::uint32_t *)patternLRSelectionField->get_data_raw(nullptr);
+                assert(patternSlider_ptr != nullptr);
+                assert(patternLRSelection_ptr != nullptr);
+                std::uint32_t patternSlider = *patternSlider_ptr;
+                std::uint32_t patternLRSelection = *patternLRSelection_ptr;
+
+                // create temporary strings
+                reframework::API::ManagedObject *str_MsgId_Option_List_Item_Name = api->create_managed_string(L"MsgId_Option_List_Item_Name");
+                reframework::API::ManagedObject *str_ObjPath_PNL_Option_List_Item_Slider_Path = api->create_managed_string(L"ObjPath_PNL_Option_List_Item_Slider_Path");
+                reframework::API::ManagedObject *str_Float_Slider_Value_Init = api->create_managed_string(L"Float_Slider_Value_Init");
+                reframework::API::ManagedObject *str_Float_Slider_Value_Current = api->create_managed_string(L"Float_Slider_Value_Current");
+                assert(str_MsgId_Option_List_Item_Name != nullptr);
+                assert(str_ObjPath_PNL_Option_List_Item_Slider_Path != nullptr);
+                assert(str_Float_Slider_Value_Init != nullptr);
+                assert(str_Float_Slider_Value_Current != nullptr);
+
+                for (std::size_t i = 0; i < itemInstTblLength; ++i)
                 {
-                    // One of our new options
-                    nameGuid = NEW_MENU_ITEMS[listIndex - _newSoundOptionsIdx].NameGuid;
-                }
-                else if (listIndex >= 0 && listIndex < nameListLength)
-                {
-                    // One of the existing options
+                    // get itemInstTbl[i]
+                    x = itemInstTbl->invoke(
+                        "get_Item",
+                        {
+                            (void *)(intptr_t)i,
+                        });
+                    reframework::API::ManagedObject *selectItem = (reframework::API::ManagedObject *)x.ptr;
+                    assert(selectItem != nullptr);
+
+                    // call selectItem.get_ListIndex()
+                    x = selectItem->invoke(
+                        "get_ListIndex",
+                        {});
+                    std::int32_t listIndex = (std::int32_t)x.dword;
+
+                    // Normally the game will compute a MurmurHash3 of the string, but this is easier
+                    // call selectItem.getParameterLegacy()
+                    x = selectItem->invoke(
+                        "getParameterLegacy(System.String)",
+                        {
+                            str_MsgId_Option_List_Item_Name,
+                        });
+                    reframework::API::ManagedObject *parameterVariable = (reframework::API::ManagedObject *)x.ptr;
+                    assert(parameterVariable != nullptr);
+
                     // get nameList[listIndex]
+                    assert(listIndex >= 0 && listIndex < nameList_Length);
                     x = nameList->invoke(
                         "get_Item",
                         {
                             (void *)(intptr_t)listIndex,
                         });
-                    nameGuid = *(Guid *)&x;
+                    Guid nameGuid = *(Guid *)&x;
 
                     // get cursorNameListList[listIndex]
+                    assert(listIndex >= 0 && listIndex <= cursorNameListList_Length);
                     x = cursorNameListList->invoke(
                         "get_Item",
                         {
                             (void *)(intptr_t)listIndex,
                         });
                     reframework::API::ManagedObject *cursorNameList = (reframework::API::ManagedObject *)x.ptr;
+
+                    // call parameterVariable.set_ValueMessageId()
+                    parameterVariable->invoke(
+                        "set_ValueMessageId(System.Guid)",
+                        {
+                            &nameGuid,
+                        });
+
                     // assume option is a slider type if it has no name list
-                    isSlider = cursorNameList == nullptr;
-                }
-                else
-                {
-                    // Option not visible or not added by us, skip
-                    continue;
-                }
-
-                // call parameterVariable.set_ValueMessageId()
-                parameterVariable->invoke(
-                    "set_ValueMessageId(System.Guid)",
+                    if (cursorNameList == nullptr)
                     {
-                        &nameGuid,
-                    });
+                        // call select.set_StatePattern()
+                        selectItem->invoke(
+                            "set_StatePattern(System.UInt32)",
+                            {
+                                (void *)(intptr_t)patternSlider,
+                            });
 
-                // assume option is a slider type if it has no name list
-                if (isSlider)
-                {
-                    // call select.set_StatePattern()
-                    selectItem->invoke(
-                        "set_StatePattern(System.UInt32)",
-                        {
-                            (void *)(intptr_t)patternSlider,
-                        });
+                        // call selectItem.getParameterLegacy()
+                        x = selectItem->invoke(
+                            "getParameterLegacy(System.String)",
+                            {
+                                str_ObjPath_PNL_Option_List_Item_Slider_Path,
+                            });
+                        parameterVariable = (reframework::API::ManagedObject *)x.ptr;
+                        assert(parameterVariable != nullptr);
 
-                    // call menu.updateSlider()
-                    menu->invoke(
-                        "updateSlider(System.Int32)",
-                        {
-                            (void *)(intptr_t)listIndex,
-                        });
+                        // call parameterVariable.get_ValueObjectPath()
+                        x = parameterVariable->invoke(
+                            "get_ValueObjectPath",
+                            {});
+                        reframework::API::ManagedObject *objPath = (reframework::API::ManagedObject *)x.ptr;
+                        assert(objPath != nullptr);
+
+                        // call selectItem.getObject
+                        // Technically the game calls getObject(System.String, System.Type),
+                        // which we could do with tdb->find_type("via.gui.Panel")->get_type(),
+                        // but we don't care about the strong typing anyway
+                        x = selectItem->invoke(
+                            "getObject(System.String)",
+                            {
+                                objPath,
+                            });
+                        reframework::API::ManagedObject *sliderPanel = (reframework::API::ManagedObject *)x.ptr;
+                        assert(sliderPanel != nullptr);
+
+                        // call sliderPanel.getParameterLegacy()
+                        x = sliderPanel->invoke(
+                            "getParameterLegacy(System.String)",
+                            {
+                                str_Float_Slider_Value_Init,
+                            });
+                        reframework::API::ManagedObject *paramVariable_floatSliderValueInit = (reframework::API::ManagedObject *)x.ptr;
+                        assert(paramVariable_floatSliderValueInit != nullptr);
+
+                        // get volumeInitValueList[listIndex]
+                        assert(listIndex >= 0 && listIndex <= volumeInitValueList_Length);
+                        x = volumeInitValueList->invoke(
+                            "get_Item",
+                            {
+                                (void *)(intptr_t)listIndex,
+                            });
+                        double volumeInitValue = x.d;
+
+                        // get cursorMaxList[listIndex]
+                        assert(listIndex >= 0 && listIndex <= cursorMaxList_Length);
+                        x = cursorMaxList->invoke(
+                            "get_Item",
+                            {
+                                (void *)(intptr_t)listIndex,
+                            });
+                        std::int32_t cursorMax = (std::int32_t)x.dword;
+
+                        // call paramVariable_floatSliderValueInit.set_ValueFloat()
+                        double sliderValueInit = volumeInitValue / (cursorMax - 1) * 100.0;
+                        paramVariable_floatSliderValueInit->invoke(
+                            "set_ValueFloat(System.Single)",
+                            {
+                                (void *)(intptr_t)*reinterpret_cast<std::uint64_t *>(&sliderValueInit),
+                            });
+
+                        // call sliderPanel.getParameterLegacy()
+                        x = sliderPanel->invoke(
+                            "getParameterLegacy(System.String)",
+                            {
+                                str_Float_Slider_Value_Current,
+                            });
+                        reframework::API::ManagedObject *paramVariable_floatSliderValueCurrent = (reframework::API::ManagedObject *)x.ptr;
+                        assert(paramVariable_floatSliderValueCurrent != nullptr);
+
+                        // get cursorIndexList[listIndex]
+                        assert(listIndex >= 0 && listIndex <= cursorIndexList_Length);
+                        x = cursorIndexList->invoke(
+                            "get_Item",
+                            {
+                                (void *)(intptr_t)listIndex,
+                            });
+                        std::int32_t cursorIndex = (std::int32_t)x.dword;
+
+                        // call paramVariable_floatSliderValueCurrent.set_ValueFloat()
+                        double sliderValueCurrent = (double)cursorIndex / (cursorMax - 1) * 100.0;
+                        paramVariable_floatSliderValueCurrent->invoke(
+                            "set_ValueFloat(System.Single)",
+                            {
+                                (void *)(intptr_t)*reinterpret_cast<std::uint64_t *>(&sliderValueCurrent),
+                            });
+                    }
+                    else
+                    {
+                        // call select.set_StatePattern()
+                        selectItem->invoke(
+                            "set_StatePattern(System.UInt32)",
+                            {
+                                (void *)(intptr_t)patternLRSelection,
+                            });
+                    }
                 }
-            }
-
-            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-        },
-        nullptr, false);
-
-    // Hook method which is called to check if selected item changed value
-    // We need to insert another call that checks if the page scrolled
-    reframework::API::Method *isUpdateSelectedItemMethod = tdb->find_method("app.cLauncherOptionMenuBase", "isUpdateSelectedItem(System.Int32, System.Int32, System.Boolean)");
-    assert(isUpdateSelectedItemMethod != nullptr);
-    isUpdateSelectedItemMethod->add_hook(
-        [](int argc, void **argv, auto...)
-        {
-            _isUpdateListPage = false;
-
-            if (!_inSoundDoUpdate)
+            };
+            auto updateGuidMessage = [](reframework::API::ManagedObject *menu)
             {
-                return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-            }
+                reframework::InvokeRet x;
+
+                // get menu.GuidList
+                reframework::API::ManagedObject **guidList_ptr = menu->get_field<reframework::API::ManagedObject *>("GuidList");
+                assert(guidList_ptr != nullptr);
+                reframework::API::ManagedObject *guidList = *guidList_ptr;
+                assert(guidList != nullptr);
+
+                // get guidList.Length
+                x = guidList->invoke(
+                    "get_Length",
+                    {});
+                std::int32_t guidList_Length = (std::int32_t)x.dword;
+
+                // get menu._SelectedIndex
+                std::int32_t *selectedIndex_ptr = menu->get_field<std::int32_t>("_SelectedIndex");
+                assert(selectedIndex_ptr != nullptr);
+                std::int32_t selectedIndex = *selectedIndex_ptr;
+
+                // get guidList[selectedIndex]
+                assert(selectedIndex >= 0 && selectedIndex < guidList_Length);
+                x = guidList->invoke(
+                    "get_Item",
+                    {
+                        (void *)(intptr_t)selectedIndex,
+                    });
+                Guid guid = *(Guid *)&x;
+
+                // call menu.setGuidMessage()
+                menu->invoke(
+                    "setGuidMessage",
+                    {
+                        &guid,
+                    });
+            };
 
             reframework::InvokeRet x;
 
             reframework::API::ManagedObject *menu = (reframework::API::ManagedObject *)argv[1];
+
+            // get menu._SelectedIndex
+            std::int32_t *selectedIndex_ptr = menu->get_field<std::int32_t>("_SelectedIndex");
+            assert(selectedIndex_ptr != nullptr);
 
             // get menu._SoundList
             reframework::API::ManagedObject **soundList_ptr = menu->get_field<reframework::API::ManagedObject *>("_SoundList");
@@ -715,150 +824,51 @@ false);
             reframework::API::ManagedObject *soundList = *soundList_ptr;
             assert(soundList != nullptr);
 
-            // get menu.GuidList
-            reframework::API::ManagedObject **guidList_ptr = menu->get_field<reframework::API::ManagedObject *>("GuidList");
-            assert(guidList_ptr != nullptr);
-            reframework::API::ManagedObject *guidList = *guidList_ptr;
-            assert(guidList != nullptr);
+            // call menu.isUpdateList()
+            // returns true if different item is selected and updates selectedIndex
+            x = menu->invoke(
+                "isUpdateList",
+                {
+                    selectedIndex_ptr, // passed by ref
+                    (void *)(intptr_t)(_newSoundOptionsIdx + NEW_MENU_ITEMS.size()),
+                });
+            bool isUpdateList = x.byte;
 
-            // call guidList.get_Length()
-            x = guidList->invoke(
-                "get_Length",
-                {});
-            std::int32_t guidListLength = (std::int32_t)x.dword;
+            if (isUpdateList)
+            {
+                // call soundList.set_SelectedIndex
+                soundList->invoke(
+                    "set_SelectedIndex",
+                    {
+                        (void *)(intptr_t)*selectedIndex_ptr,
+                    });
 
-            // get &menu._SelectedIndex
-            std::int32_t *selectedIndex_ptr = menu->get_field<std::int32_t>("_SelectedIndex");
-            assert(selectedIndex_ptr != nullptr);
+                updateList(menu);
+                updateGuidMessage(menu);
+                return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+            }
 
             // call menu.isUpdateListPage()
+            // returns true if list is page scrolled and updates selectedIndex
+            // also calls soundList.set_SelectedIndex internally
             x = menu->invoke(
-                "isUpdateListPage(via.gui.FluentScrollList, System.Int32)",
+                "isUpdateListPage",
                 {
                     soundList,
                     selectedIndex_ptr, // passed by ref
                 });
-            _isUpdateListPage = x.byte;
+            bool isUpdateListPage = x.byte;
 
-            if (_isUpdateListPage)
+            if (isUpdateListPage)
             {
-                // Select appropriate description GUID
-                // get menu._SelectedIndex
-                std::int32_t selectedIndex = *selectedIndex_ptr;
-
-                Guid descriptionGuid;
-                if (selectedIndex >= _newSoundOptionsIdx && selectedIndex < _newSoundOptionsIdx + NEW_MENU_ITEMS.size())
-                {
-                    // One of our new options
-                    descriptionGuid = NEW_MENU_ITEMS[selectedIndex - _newSoundOptionsIdx].DescriptionGuid;
-                }
-                else if (selectedIndex < guidListLength)
-                {
-                    // One of the existing options
-                    // get guidList[selectedIndex]
-                    x = guidList->invoke(
-                        "get_Item",
-                        {
-                            (void *)(intptr_t)selectedIndex,
-                        });
-                    descriptionGuid = *(Guid *)&x;
-                }
-                else
-                {
-                    // New option that wasn't added by us, skip
-                    return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
-                }
-
-                // call menu.setGuidMessage()
-                // This will call the hooked version which will also call our updateList()
-                menu->invoke(
-                    "setGuidMessage(System.Guid)",
-                    {
-                        &descriptionGuid,
-                    });
-
-                // Return nullptr in post-hook, this will cause doUpdate() to exit
+                updateList(menu);
+                updateGuidMessage(menu);
                 return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
             }
 
-            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+            return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
         },
-        [](void **ret_val, auto...)
-        {
-            if (_isUpdateListPage)
-            {
-                // Override return value with nullptr, this will cause doUpdate() to exit
-                *ret_val = nullptr;
-                _isUpdateListPage = false;
-            }
-        },
-        false);
-
-    // Hook method which is called when the game populates the Options menu
-    // with the actual saved settings from the player's save file
-    // Here we overwrite the selected index for damage reduction with our custom rate
-    reframework::API::Method *getSaveParamMethod = tdb->find_method("app.cLauncherOptionSound", "getSaveParam()");
-    assert(getSaveParamMethod != nullptr);
-    getSaveParamMethod->add_hook(
-        nullptr,
-        [](auto...)
-        {
-            /*
-            reframework::InvokeRet x;
-
-            // get launcherOptionDifficult._CursolIndex
-            reframework::API::ManagedObject **cursorIndex_ptr = _menuTblOption->get_field<reframework::API::ManagedObject *>("_CursolIndex");
-            assert(cursorIndex_ptr != nullptr);
-            reframework::API::ManagedObject *cursorIndex = *cursorIndex_ptr;
-            assert(cursorIndex != nullptr);
-
-            // set _CursolIndex[damageReductionIdx]
-            x = cursorIndex->invoke(
-                "set_Item",
-                {
-                    (void *)(intptr_t)_damageReductionIdx,
-                    (void *)(intptr_t)GetClosestDamageMultiplierIdx(),
-                });
-            */
-        },
-        false);
-
-    // Hook "Reset Settings" option used inside Difficulty tab
-    // Here we reset our custom damage multiplier to 100%
-    // This is needed because our 100% multiplier is in a different list index
-    // than the original 0% reduction
-    reframework::API::Method *resetSettingMethod = tdb->find_method("app.cLauncherOptionDifficult", "resetSetting()");
-    assert(resetSettingMethod != nullptr);
-    resetSettingMethod->add_hook(
-        [](auto...)
-        {
-            /*
-            _damageMultiplier = DEFAULT_DAMAGE_MULTIPLIER;
-            */
-
-            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-        },
-        [](auto...)
-        {
-            /*
-            reframework::InvokeRet x;
-
-            // get launcherOptionDifficult._CursolIndex
-            reframework::API::ManagedObject **cursorIndex_ptr = _menuTblOption->get_field<reframework::API::ManagedObject *>("_CursolIndex");
-            assert(cursorIndex_ptr != nullptr);
-            reframework::API::ManagedObject *cursorIndex = *cursorIndex_ptr;
-            assert(cursorIndex != nullptr);
-
-            // set _CursolIndex[damageReductionIdx]
-            x = cursorIndex->invoke(
-                "set_Item",
-                {
-                    (void *)(intptr_t)_damageReductionIdx,
-                    (void *)(intptr_t)GetClosestDamageMultiplierIdx(),
-                });
-            */
-        },
-        false);
+        nullptr, false);
 
     return true;
 }
