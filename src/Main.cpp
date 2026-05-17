@@ -42,6 +42,8 @@ static bool _doResizeSoundList = false;
 
 static int _newSoundOptionsIdx = -1;
 
+static const size_t FLUENT_SCROLL_LIST_OFFSET_BAR_PATH = 0x2D0;
+
 static const std::vector<Guid> NEW_BGM_SELECTION_OPTIONS = {
     Guid(L"8095b996-deab-419a-b034-5d21fa0aee21"), // 100%
     Guid(L"3a33dbca-f51f-4c3e-bf72-9041cdec608b"), // 200%
@@ -307,27 +309,22 @@ false);
             // newNameList = new System.Guid[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
             reframework::API::ManagedObject *newNameList = api->create_managed_array(guidType, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
             assert(newNameList != nullptr);
-            newNameList->add_ref();
 
             // newGuidList = new System.Guid[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
             reframework::API::ManagedObject *newGuidList = api->create_managed_array(guidType, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
             assert(newGuidList != nullptr);
-            newGuidList->add_ref();
 
             // newCursorIndexList = new System.Int32[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
             reframework::API::ManagedObject *newCursorIndexList = api->create_managed_array(int32Type, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
             assert(newCursorIndexList != nullptr);
-            newCursorIndexList->add_ref();
 
             // newCursorMaxList = new System.Int32[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
             reframework::API::ManagedObject *newCursorMaxList = api->create_managed_array(int32Type, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
             assert(newCursorMaxList != nullptr);
-            newCursorMaxList->add_ref();
 
             // newCursorNameListList = new System.Array<System.Array>[_newSoundOptionsIdx + NEW_MENU_ITEMS.size()]
             reframework::API::ManagedObject *newCursorNameListList = api->create_managed_array(arrayType, _newSoundOptionsIdx + NEW_MENU_ITEMS.size());
             assert(newCursorNameListList != nullptr);
-            newCursorNameListList->add_ref();
 
             // Fill new arrays
             for (int i = 0; i < _newSoundOptionsIdx + NEW_MENU_ITEMS.size(); ++i)
@@ -398,7 +395,6 @@ false);
                     // cursorNameList = new System.Array<System.Guid>[newNumOptions]
                     cursorNameList = api->create_managed_array(guidType, cursorMax);
                     assert(cursorNameList != nullptr);
-                    cursorNameList->add_ref();
 
                     // fill new cursor name list
                     for (int j = 0; j < cursorMax; j++)
@@ -458,22 +454,100 @@ false);
             // set menuTblOption.NameList
             nameList->release();
             *nameList_ptr = newNameList;
+            newNameList->add_ref();
 
             // set menuTblOption.GuidList
             guidList->release();
             *guidList_ptr = newGuidList;
+            newGuidList->add_ref();
 
             // set menuTblOption._CursolIndex
             cursorIndexList->release();
             *cursorIndexList_ptr = newCursorIndexList;
+            newCursorIndexList->add_ref();
 
             // set menuTblOption.CursolMax
             cursorMaxList->release();
             *cursorMaxList_ptr = newCursorMaxList;
+            newCursorMaxList->add_ref();
 
             // set menuTblOption._CursolNameList
             cursorNameListList->release();
             *cursorNameListList_ptr = newCursorNameListList;
+            newCursorNameListList->add_ref();
+
+            // Display the scrollbar
+            reframework::API::ManagedObject *str_scrollBarPath = api->create_managed_string(L"/FSB_ref_Vertical_Button");
+            reframework::API::ManagedObject *str_textPrevPath = api->create_managed_string(L"/txt_Prev");
+            reframework::API::ManagedObject *str_textNextPath = api->create_managed_string(L"/txt_Next");
+            assert(str_scrollBarPath != nullptr);
+            assert(str_textPrevPath != nullptr);
+            assert(str_textNextPath != nullptr);
+
+            // get menu._SoundList
+            reframework::API::ManagedObject **soundList_ptr = _menuTblOption->get_field<reframework::API::ManagedObject *>("_SoundList");
+            assert(soundList_ptr != nullptr);
+            reframework::API::ManagedObject *soundList = *soundList_ptr;
+            assert(soundList != nullptr);
+
+            // call soundList.getObject
+            // Technically the game calls getObject(System.String, System.Type),
+            // which we could do with tdb->find_type("via.gui.Panel")->get_type(),
+            // but we don't care about the strong typing anyway
+            x = soundList->invoke(
+                "getObject(System.String)",
+                {
+                    str_scrollBarPath,
+                });
+            reframework::API::ManagedObject *fluentScrollBar = (reframework::API::ManagedObject *)x.ptr;
+            assert(fluentScrollBar != nullptr);
+
+            // call fluentScrollBar.getObject
+            // Technically the game calls getObject(System.String, System.Type),
+            // which we could do with tdb->find_type("via.gui.Panel")->get_type(),
+            // but we don't care about the strong typing anyway
+            x = fluentScrollBar->invoke(
+                "getObject(System.String)",
+                {
+                    str_textPrevPath,
+                });
+            reframework::API::ManagedObject *textPrev = (reframework::API::ManagedObject *)x.ptr;
+            assert(textPrev != nullptr);
+
+            // call fluentScrollBar.getObject
+            // Technically the game calls getObject(System.String, System.Type),
+            // which we could do with tdb->find_type("via.gui.Panel")->get_type(),
+            // but we don't care about the strong typing anyway
+            x = fluentScrollBar->invoke(
+                "getObject(System.String)",
+                {
+                    str_textNextPath,
+                });
+            reframework::API::ManagedObject *textNext = (reframework::API::ManagedObject *)x.ptr;
+            assert(textNext != nullptr);
+
+            // call fluentScrollBar.set_Visible
+            fluentScrollBar->invoke(
+                "set_Visible(System.Boolean)",
+                {
+                    (void *)(intptr_t)(true),
+                });
+
+            // call textPrev.set_MessageId
+            Guid guidTextPrev(L"cbfc4e85-c78c-4632-bd34-0e4a10e41f6b"); // <ICON LAUNCHER_PAGE_PREV>
+            textPrev->invoke(
+                "set_MessageId(System.Guid)",
+                {
+                    &guidTextPrev,
+                });
+
+            // call textNext.set_MessageId
+            Guid guidTextNext(L"14dd8e95-a0c1-462a-acbc-5c2e34498a34"); // <ICON LAUNCHER_PAGE_NEXT>
+            textNext->invoke(
+                "set_MessageId(System.Guid)",
+                {
+                    &guidTextNext,
+                });
         },
         false);
 
@@ -505,10 +579,26 @@ false);
             }
             _doResizeSoundList = false;
 
+            auto &api = reframework::API::get();
             reframework::InvokeRet x;
 
             reframework::API::ManagedObject *soundList = (reframework::API::ManagedObject *)argv[1];
             assert(soundList != nullptr);
+
+            reframework::API::ManagedObject *str_scrollBarPath = api->create_managed_string(L"/FSB_ref_Vertical_Button");
+
+            // set soundList.BarPath
+            // This should be done before set_ItemCount
+            // BarPath is a reflection property, so use the offset directly...
+            reframework::API::ManagedObject **barPath_ptr = (reframework::API::ManagedObject **)((intptr_t)soundList + FLUENT_SCROLL_LIST_OFFSET_BAR_PATH);
+            assert(barPath_ptr != nullptr);
+            reframework::API::ManagedObject *barPath = *barPath_ptr;
+            if (barPath != nullptr)
+            {
+                barPath->release();
+            }
+            *barPath_ptr = str_scrollBarPath;
+            str_scrollBarPath->add_ref();
 
             // get soundList.ItemCount
             x = soundList->invoke(
