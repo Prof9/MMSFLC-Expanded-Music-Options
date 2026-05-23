@@ -15,11 +15,11 @@ Guid::Guid(std::wstring const &string)
 	std::swscanf(
 		string.c_str(),
 		GUID_FORMAT_STRING,
-		&this->data1,
-		&this->data2,
-		&this->data3,
-		&this->data4_0, &this->data4_1,
-		&this->data4_2, &this->data4_3, &this->data4_4, &this->data4_5, &this->data4_6, &this->data4_7);
+		&this->m_data1,
+		&this->m_data2,
+		&this->m_data3,
+		&this->m_data4_0, &this->m_data4_1,
+		&this->m_data4_2, &this->m_data4_3, &this->m_data4_4, &this->m_data4_5, &this->m_data4_6, &this->m_data4_7);
 }
 
 /// @brief Convert GUID to string.
@@ -28,36 +28,14 @@ std::wstring Guid::toString() const
 {
 	return std::format(
 		GUID_FORMAT_STRING,
-		this->data1,
-		this->data2,
-		this->data3,
-		this->data4_0, this->data4_1,
-		this->data4_2, this->data4_3, this->data4_4, this->data4_5, this->data4_6, this->data4_7);
+		this->m_data1,
+		this->m_data2,
+		this->m_data3,
+		this->m_data4_0, this->m_data4_1,
+		this->m_data4_2, this->m_data4_3, this->m_data4_4, this->m_data4_5, this->m_data4_6, this->m_data4_7);
 }
 
-/// @brief Compare two GUIDs.
-/// @param other GUID to compare with.
-/// @return 0 if GUIDs are equal, -1 if this GUID is smaller, 1 if it is greater.
-std::strong_ordering Guid::compare(Guid const &other) const
+Guid operator""_guid(const wchar_t *s, size_t)
 {
-	// Zero one of the fields extend to 64-bit
-	std::int64_t result = (std::int64_t)(std::uint64_t)this->data1 - other.data1;
-	if (result == 0)
-	{
-		result = (std::int64_t)(std::uint64_t)this->data2 - other.data2;
-		if (result == 0)
-		{
-			result = (std::int64_t)(std::uint64_t)this->data3 - other.data3;
-			if (result == 0)
-			{
-				result = (std::int64_t)(std::uint64_t)this->data4L_0 - other.data4L_0;
-				if (result == 0)
-				{
-					result = (std::int64_t)(std::uint64_t)this->data4L_1 - other.data4L_1;
-				}
-			}
-		}
-	}
-	return result == 0 ? std::strong_ordering::equal : result < 0 ? std::strong_ordering::less
-																  : std::strong_ordering::greater;
+	return Guid(s);
 }

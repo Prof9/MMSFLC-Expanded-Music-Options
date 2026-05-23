@@ -58,15 +58,14 @@ MessageReference *MessageManager::getMessageReference(Guid const &guid) const
 		if (node == nullptr || node->isInvalid)
 		{
 			std::wstring guidString = guid.toString();
-			OutputDebugString(std::vformat(
+			OutputDebugString(std::format(
 								  L"Message with GUID %s not found",
-								  std::make_format_args<std::wformat_context>(
-									  guidString))
+								  guidString)
 								  .c_str());
 			return nullptr;
 		}
 
-		std::strong_ordering ordering = guid.compare(node->guid);
+		std::strong_ordering ordering = guid <=> node->guid;
 		if (ordering == std::strong_ordering::equal)
 		{
 			break;

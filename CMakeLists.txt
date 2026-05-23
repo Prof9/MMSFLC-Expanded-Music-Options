@@ -22,12 +22,14 @@ include_directories(SYSTEM
 	"modules/reframework/include"
 )
 add_library(REF_PLUGIN SHARED
+	"src/AudioMenuExtension.cpp"
 	"src/Guid.cpp"
 	"src/Main.cpp"
 	"src/MessageFile.cpp"
 	"src/MessageManager.cpp"
 	"src/MessageReference.cpp"
 	"src/MessageUtility.cpp"
+	"src/REFrameworkHelper.cpp"
 )
 
 add_definitions(
