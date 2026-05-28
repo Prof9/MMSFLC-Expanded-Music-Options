@@ -87,7 +87,7 @@ namespace REFrameworkHelper
 		T get(std::string_view fieldName, bool isValueType = false);
 	};
 
-	HookRef hook(std::string_view typeName, std::string_view funcName, REFPreHookFn pre_fn, REFPostHookFn post_fn, bool ignoreJmp = false);
+	HookRef hook(std::string_view fullName, REFPreHookFn pre_fn, REFPostHookFn post_fn, bool ignoreJmp = false);
 
 	Object getSingleton(std::string_view name);
 

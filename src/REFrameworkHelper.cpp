@@ -229,16 +229,22 @@ T Type::get(std::string_view fieldName, bool isValueType)
 }
 
 /// @brief Helper function to hook TDB function
-/// @param typeName Name of type
-/// @param funcName Name of function
+/// @param fullName Fully qualified name of function e.g. namespace.namespace.class.function()
 /// @param preFn Pre-function hook callback
 /// @param postFn Post-function hook callback
 /// @param ignoreJmp Skips trying to follow the first jmp in the function
 /// @return Hook reference, can be used to unhook later
-HookRef REFrameworkHelper::hook(std::string_view typeName, std::string_view funcName, REFPreHookFn preFn, REFPostHookFn postFn, bool ignoreJmp)
+HookRef REFrameworkHelper::hook(std::string_view fullName, REFPreHookFn preFn, REFPostHookFn postFn, bool ignoreJmp)
 {
 	auto &api = reframework::API::get();
 	auto tdb = api->tdb();
+
+	size_t dotPos = fullName.find_last_of('.');
+	assert(dotPos != std::string::npos);
+
+	// Workaround for bug in RETypeDB::find_type() where it uses unbounded .data() on the input
+	std::string typeName = std::string(fullName.substr(0, dotPos));
+	std::string_view funcName = fullName.substr(dotPos + 1);
 
 	reframework::API::Method *method = tdb->find_method(typeName, funcName);
 	if (method == nullptr)
@@ -279,8 +285,7 @@ Type REFrameworkHelper::getType(std::string_view name)
 	auto &api = reframework::API::get();
 	auto tdb = api->tdb();
 
-	// Workaround for bug in RETypeDB::find_type() where it uses unbounded .data() on the input
-	reframework::API::TypeDefinition *type = tdb->find_type(std::string(name));
+	reframework::API::TypeDefinition *type = tdb->find_type(name);
 	if (type == nullptr)
 	{
 		api->log_error("getType: unknown type {}", name);
@@ -301,8 +306,12 @@ T REFrameworkHelper::getStaticField(std::string_view fullName)
 	size_t dotPos = fullName.find_last_of('.');
 	assert(dotPos != std::string::npos);
 
-	Type type = getType(fullName.substr(0, dotPos));
-	return type.get<T>(fullName.substr(dotPos + 1));
+	// Workaround for bug in RETypeDB::find_type() where it uses unbounded .data() on the input
+	std::string typeName = std::string(fullName.substr(0, dotPos));
+	std::string_view fieldName = fullName.substr(dotPos + 1);
+
+	Type type = getType(typeName);
+	return type.get<T>(fieldName);
 }
 
 /// @brief Helper function to create array of given type and size

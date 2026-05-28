@@ -25,6 +25,7 @@ add_library(REF_PLUGIN SHARED
 	"src/AudioMenuExtension.cpp"
 	"src/Guid.cpp"
 	"src/Main.cpp"
+	"src/MenuItem.cpp"
 	"src/MessageFile.cpp"
 	"src/MessageManager.cpp"
 	"src/MessageReference.cpp"

@@ -24,12 +24,12 @@
 #define CONFIG_DIR "reframework\\data\\ExpandedMusicOptions"
 #define CONFIG_FILENAME CONFIG_DIR "\\config.bin"
 
-static std::uint8_t _bgmFieldSetting = 0;
-static std::uint8_t _bgmBattleSetting = 0;
-static std::uint8_t _bgmSetting3 = 0;
-static std::uint8_t _bgmSetting4 = 0;
-static std::uint8_t _bgmSetting5 = 0;
-static std::uint8_t _bgmSetting6 = 0;
+static std::int32_t _bgmFieldSetting = -1;
+static std::int32_t _bgmBattleSetting = -1;
+static std::int32_t _bgmSetting3 = -1;
+static std::int32_t _bgmSetting4 = -1;
+static std::int32_t _bgmSetting5 = -1;
+static std::int32_t _bgmSetting6 = -1;
 
 static bool _doResizeSoundList = false;
 
@@ -47,40 +47,40 @@ static const std::vector<Guid> NEW_BGM_SELECTION_OPTIONS = {
 
 static std::vector<MenuItem> const NEW_MENU_ITEMS = {
     MenuItem{
-        .NameGuid = L"9dd4d43c-4b86-48f5-9b6f-d1816656760f"_guid,
-        .DescriptionGuid = L"45cf3ad4-b931-4885-a4fe-8e26be1b1475"_guid,
-        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
-        .SettingPtr = &_bgmFieldSetting,
+        .m_nameGuid = L"9dd4d43c-4b86-48f5-9b6f-d1816656760f"_guid,
+        .m_descriptionGuid = L"45cf3ad4-b931-4885-a4fe-8e26be1b1475"_guid,
+        .m_valueNames = &NEW_BGM_SELECTION_OPTIONS,
+        .m_value = &_bgmFieldSetting,
     },
     MenuItem{
-        .NameGuid = L"aeed2fdf-2495-4fe7-9b9d-afdd92a1a631"_guid,
-        .DescriptionGuid = L"295acd67-b442-4328-af81-505199b3194a"_guid,
-        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
-        .SettingPtr = &_bgmBattleSetting,
+        .m_nameGuid = L"aeed2fdf-2495-4fe7-9b9d-afdd92a1a631"_guid,
+        .m_descriptionGuid = L"295acd67-b442-4328-af81-505199b3194a"_guid,
+        .m_valueNames = &NEW_BGM_SELECTION_OPTIONS,
+        .m_value = &_bgmBattleSetting,
     },
     MenuItem{
-        .NameGuid = L"5327f1b2-51f8-4b7d-9510-d90b2cedd1f2"_guid,
-        .DescriptionGuid = L"7acea6b1-a466-45b9-890a-74ecbe0adee1"_guid,
-        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
-        .SettingPtr = &_bgmSetting3,
+        .m_nameGuid = L"5327f1b2-51f8-4b7d-9510-d90b2cedd1f2"_guid,
+        .m_descriptionGuid = L"7acea6b1-a466-45b9-890a-74ecbe0adee1"_guid,
+        .m_valueNames = &NEW_BGM_SELECTION_OPTIONS,
+        .m_value = &_bgmSetting3,
     },
     MenuItem{
-        .NameGuid = L"6e45bcd6-0f76-4576-8b42-9ac87762328e"_guid,
-        .DescriptionGuid = L"0a12f712-9d90-42b3-bb90-f123dedfc6b3"_guid,
-        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
-        .SettingPtr = &_bgmSetting4,
+        .m_nameGuid = L"6e45bcd6-0f76-4576-8b42-9ac87762328e"_guid,
+        .m_descriptionGuid = L"0a12f712-9d90-42b3-bb90-f123dedfc6b3"_guid,
+        .m_valueNames = &NEW_BGM_SELECTION_OPTIONS,
+        .m_value = &_bgmSetting4,
     },
     MenuItem{
-        .NameGuid = L"43293d60-97ef-4e61-9de7-abafe61c42d8"_guid,
-        .DescriptionGuid = L"f0a6ffdd-413a-4a22-8382-8fc8a6e4e159"_guid,
-        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
-        .SettingPtr = &_bgmSetting5,
+        .m_nameGuid = L"43293d60-97ef-4e61-9de7-abafe61c42d8"_guid,
+        .m_descriptionGuid = L"f0a6ffdd-413a-4a22-8382-8fc8a6e4e159"_guid,
+        .m_valueNames = &NEW_BGM_SELECTION_OPTIONS,
+        .m_value = &_bgmSetting5,
     },
     MenuItem{
-        .NameGuid = L"f3240d92-582d-4013-ab24-ae564c872d85"_guid,
-        .DescriptionGuid = L"1c09fcc8-3f61-4ed1-bd4c-f2742f84c432"_guid,
-        .SelectionOptions = &NEW_BGM_SELECTION_OPTIONS,
-        .SettingPtr = &_bgmSetting6,
+        .m_nameGuid = L"f3240d92-582d-4013-ab24-ae564c872d85"_guid,
+        .m_descriptionGuid = L"1c09fcc8-3f61-4ed1-bd4c-f2742f84c432"_guid,
+        .m_valueNames = &NEW_BGM_SELECTION_OPTIONS,
+        .m_value = &_bgmSetting6,
     },
 };
 

@@ -16,106 +16,235 @@ using namespace REFrameworkHelper;
 
 static const ptrdiff_t FLUENT_SCROLL_LIST_OFFSET_BAR_PATH = 0x2D0;
 
+/// @brief Updates list display
+/// @param launcherOptionSound app.cLauncherOptionSound object
+void AudioMenuExtension::updateList(Object launcherOptionSound)
+{
+	Object soundList = launcherOptionSound.get<Object>("_SoundList");
+	Object nameList = launcherOptionSound.get<Object>("NameList");
+	Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
+	Object cursorMaxList = launcherOptionSound.get<Object>("CursolMax");
+	Object cursorNameListList = launcherOptionSound.get<Object>("_CursolNameList");
+	Object volumeInitValueList = launcherOptionSound.get<Object>("VolumeInitValue");
+
+	Object itemInstTbl = soundList.get<Object>("ItemInstTbl");
+	std::int32_t itemInstTblLength = itemInstTbl.get<std::int32_t>("Length");
+
+	std::uint32_t patternSlider = getStaticField<std::uint32_t>("via.gui.asset.ui00030000._ITM_List_Item_._Pattern_Slider");
+	std::uint32_t patternLRSelection = getStaticField<std::uint32_t>("via.gui.asset.ui00030000._ITM_List_Item_._Pattern_LR_Selection");
+
+	// create temporary strings
+	Object str_MsgId_Option_List_Item_Name = createString(L"MsgId_Option_List_Item_Name");
+	Object str_ObjPath_PNL_Option_List_Item_Slider_Path = createString(L"ObjPath_PNL_Option_List_Item_Slider_Path");
+	Object str_ObjPath_PNL_Option_List_Item_LR_Selection_Path = createString(L"ObjPath_PNL_Option_List_Item_LR_Selection_Path");
+	Object str_Float_Slider_Value_Init = createString(L"Float_Slider_Value_Init");
+	Object str_Float_Slider_Value_Current = createString(L"Float_Slider_Value_Current");
+	Object str_MsgId_LR_Selection_Button_Message = createString(L"MsgId_LR_Selection_Button_Message");
+	Object str_Bool_LR_Selection_Cursor_Left_Visible = createString(L"Bool_LR_Selection_Cursor_Left_Visible");
+	Object str_Bool_LR_Selection_Cursor_Right_Visible = createString(L"Bool_LR_Selection_Cursor_Right_Visible");
+
+	for (std::size_t i = 0; i < itemInstTblLength; ++i)
+	{
+		Object selectItem = itemInstTbl.get<Object>(i);
+		std::int32_t listIndex = selectItem.get<std::int32_t>("ListIndex");
+
+		// Normally the game will compute a MurmurHash3 of the string, but this is easier
+		Object parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_MsgId_Option_List_Item_Name});
+		Guid nameGuid = nameList.get<Guid>(listIndex);
+		parameterVariable.set<Guid>("ValueMessageId", {nameGuid});
+
+		Object cursorNameList = cursorNameListList.get<Object>(listIndex);
+		std::int32_t cursorIndex = cursorIndexList.get<std::int32_t>(listIndex);
+		std::int32_t cursorMax = cursorMaxList.get<std::int32_t>(listIndex);
+
+		// assume option is a slider type if it has no name list
+		if (cursorNameList.null())
+		{
+			selectItem.set<std::uint32_t>("StatePattern", patternSlider);
+
+			parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_ObjPath_PNL_Option_List_Item_Slider_Path});
+			Object objPath = parameterVariable.get<Object>("ValueObjectPath");
+			Object sliderPanel = selectItem.call<Object>("getObject(System.String)", {objPath});
+
+			Object paramVariable_floatSliderValueInit = sliderPanel.call<Object>("getParameterLegacy(System.String)", {str_Float_Slider_Value_Init});
+			double volumeInitValue = volumeInitValueList.get<double>(listIndex);
+			double sliderValueInit = volumeInitValue / (cursorMax - 1) * 100.0;
+			paramVariable_floatSliderValueInit.set<double>("ValueFloat", sliderValueInit);
+
+			Object paramVariable_floatSliderValueCurrent = sliderPanel.call<Object>("getParameterLegacy(System.String)", {str_Float_Slider_Value_Current});
+			double sliderValueCurrent = (double)cursorIndex / (cursorMax - 1) * 100.0;
+			paramVariable_floatSliderValueCurrent.set<double>("ValueFloat", sliderValueCurrent);
+		}
+		else
+		{
+			selectItem.set<std::uint32_t>("StatePattern", patternLRSelection);
+
+			parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_ObjPath_PNL_Option_List_Item_LR_Selection_Path});
+			Object objPath = parameterVariable.get<Object>("ValueObjectPath");
+			Object selectionPanel = selectItem.call<Object>("getObject(System.String)", {objPath});
+
+			Object parameterVariable_buttonMessage = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_MsgId_LR_Selection_Button_Message});
+			Guid cursorGuid = cursorNameList.get<Guid>(cursorIndex);
+			parameterVariable_buttonMessage.set<Guid>("ValueMessageId", cursorGuid);
+
+			Object parameterVariable_leftVisible = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_Bool_LR_Selection_Cursor_Left_Visible});
+			parameterVariable_leftVisible.set<bool>("ValueBool", cursorIndex > 0);
+
+			Object parameterVariable_rightVisible = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_Bool_LR_Selection_Cursor_Right_Visible});
+			parameterVariable_rightVisible.set<bool>("ValueBool", cursorIndex < cursorMax - 1);
+		}
+	}
+}
+
+/// @brief Updates description message at bottom of screen
+/// @param launcherOptionSound app.cLauncherOptionSound object
+void AudioMenuExtension::updateGuidMessage(Object launcherOptionSound)
+{
+	Object guidList = launcherOptionSound.get<Object>("GuidList");
+	std::int32_t selectedIndex = launcherOptionSound.get<std::int32_t>("_SelectedIndex");
+	Guid guid = guidList.get<Guid>(selectedIndex);
+
+	launcherOptionSound.call<void>("setGuidMessage(System.Guid)", {&guid});
+}
+
 /// @brief Install all hooks used for audio menu extensions
 void AudioMenuExtension::installHooks()
 {
-	// Hook method which is called when Settings menu is initialized
+	// Hook method which sets up the Audio menu
 	// Here we modify the Audio menu to add our new options
+	static Object s_launcherOptionSound;
 	s_hooks.emplace_back(hook(
-		"app.GUILauncherOption",
-		"start()",
-		nullptr,
+		"app.cLauncherOptionSound.setupContent()",
+		[](int argc, void **argv, auto...)
+		{
+			s_launcherOptionSound = Object(argv[1]);
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
 		[](auto...)
 		{
 			ptrdiff_t numNewMenuItems = std::ranges::distance(getAllNewMenuItems());
 
-			Object launcher = getSingleton("app.Launcher");
-			Object guiBehaviors = launcher.get<Object>("guiBehaviors");
-			Object launcherOption = guiBehaviors.get<Object>(std::to_underlying(app::Launcher::LauncherGUIId::Option));
-			Object menuTbl = launcherOption.get<Object>("_MenuTbl");
+			Object launcherOptionSound = s_launcherOptionSound;
 
-			s_menuTblOption = menuTbl.get<Object>(std::to_underlying(app::GUILauncherOption::MENU_TYPE::SOUND));
+			Object nameList = launcherOptionSound.get<Object>("NameList");
+			Object guidList = launcherOptionSound.get<Object>("GuidList");
+			Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
+			Object cursorMaxList = launcherOptionSound.get<Object>("CursolMax");
+			Object cursorNameListList = launcherOptionSound.get<Object>("_CursolNameList");
 
-			Object nameList = s_menuTblOption.get<Object>("NameList");
-			Object guidList = s_menuTblOption.get<Object>("GuidList");
-			Object cursorIndexList = s_menuTblOption.get<Object>("_CursolIndex");
-			Object cursorMaxList = s_menuTblOption.get<Object>("CursolMax");
-			Object cursorNameListList = s_menuTblOption.get<Object>("_CursolNameList");
-
-			s_newSoundOptionsIdx = nameList.get<std::int32_t>("Length");
-
-			Object newNameList = createArray("System.Guid", s_newSoundOptionsIdx + numNewMenuItems);
-			Object newGuidList = createArray("System.Guid", s_newSoundOptionsIdx + numNewMenuItems);
-			Object newCursorIndexList = createArray("System.Int32", s_newSoundOptionsIdx + numNewMenuItems);
-			Object newCursorMaxList = createArray("System.Int32", s_newSoundOptionsIdx + numNewMenuItems);
-			Object newCursorNameListList = createArray("System.Array", s_newSoundOptionsIdx + numNewMenuItems);
-
-			// Fill new arrays
-			auto menuItemGen = getAllNewMenuItems();
-			auto menuItemIter = menuItemGen.begin();
-			for (int i = 0; i < s_newSoundOptionsIdx + numNewMenuItems; ++i)
+			// If this is a reload, do not update stuff we don't need to
+			if (s_newSoundOptionsIdx < 0)
 			{
-				Guid nameGuid;
-				Guid descriptionGuid;
-				std::int32_t cursorIdx;
-				std::int32_t cursorMax;
-				Object cursorNameList;
+				// This is initial load, get original length of list
+				s_newSoundOptionsIdx = nameList.get<std::int32_t>("Length");
 
-				if (i < s_newSoundOptionsIdx)
+				Object newNameList = createArray("System.Guid", s_newSoundOptionsIdx + numNewMenuItems);
+				Object newGuidList = createArray("System.Guid", s_newSoundOptionsIdx + numNewMenuItems);
+				Object newCursorIndexList = createArray("System.Int32", s_newSoundOptionsIdx + numNewMenuItems);
+				Object newCursorMaxList = createArray("System.Int32", s_newSoundOptionsIdx + numNewMenuItems);
+
+				// Fill new arrays
+				auto menuItemGen = getAllNewMenuItems();
+				auto menuItemIter = menuItemGen.begin();
+				for (int i = 0; i < s_newSoundOptionsIdx + numNewMenuItems; ++i)
 				{
-					nameGuid = nameList.get<Guid>(i);
-					descriptionGuid = guidList.get<Guid>(i);
-					cursorIdx = cursorIndexList.get<std::int32_t>(i);
-					cursorMax = cursorMaxList.get<std::int32_t>(i);
-					cursorNameList = cursorNameListList.get<Object>(i);
-				}
-				else
-				{
-					// get new item
-					MenuItem const *menuItem = *menuItemIter;
+					Guid nameGuid;
+					Guid descriptionGuid;
+					std::int32_t cursorIdx;
+					std::int32_t cursorMax;
 
-					nameGuid = menuItem->NameGuid;
-					descriptionGuid = menuItem->DescriptionGuid;
-					cursorMax = menuItem->SelectionOptions->size();
-					cursorIdx = *menuItem->SettingPtr;
-
-					// If setting value is out of bounds, reset to default
-					if (cursorIdx < 0 || cursorIdx >= cursorMax)
+					if (i < s_newSoundOptionsIdx)
 					{
-						*menuItem->SettingPtr = cursorIdx = 0;
+						nameGuid = nameList.get<Guid>(i);
+						descriptionGuid = guidList.get<Guid>(i);
+						cursorIdx = cursorIndexList.get<std::int32_t>(i);
+						cursorMax = cursorMaxList.get<std::int32_t>(i);
+					}
+					else
+					{
+						// get new item
+						MenuItem const *menuItem = *menuItemIter;
+
+						nameGuid = menuItem->m_nameGuid;
+						descriptionGuid = menuItem->m_descriptionGuid;
+						cursorMax = menuItem->m_valueNames->size();
+						cursorIdx = menuItem->getValue();
+
+						++menuItemIter;
 					}
 
-					// build new cursor name list
-					// cursorNameList = new System.Array<System.Guid>[cursorMax]
-					cursorNameList = createArray("System.Guid", cursorMax);
-
-					// fill new cursor name list
-					for (int j = 0; j < cursorMax; j++)
-					{
-						// set cursorNameList[j]
-						Guid cursorName = (*menuItem->SelectionOptions)[j];
-						cursorNameList.set<Guid>(j, cursorName);
-					}
-
-					++menuItemIter;
+					newNameList.set<Guid>(i, nameGuid);
+					newGuidList.set<Guid>(i, descriptionGuid);
+					newCursorIndexList.set<std::int32_t>(i, cursorIdx);
+					newCursorMaxList.set<std::int32_t>(i, cursorMax);
 				}
 
-				newNameList.set<Guid>(i, nameGuid);
-				newGuidList.set<Guid>(i, descriptionGuid);
-				newCursorIndexList.set<std::int32_t>(i, cursorIdx);
-				newCursorMaxList.set<std::int32_t>(i, cursorMax);
-				newCursorNameListList.set<Object>(i, cursorNameList);
+				launcherOptionSound.set<Object>("NameList", newNameList);
+				launcherOptionSound.set<Object>("GuidList", newGuidList);
+				launcherOptionSound.set<Object>("_CursolIndex", newCursorIndexList);
+				launcherOptionSound.set<Object>("CursolMax", newCursorMaxList);
 			}
 
-			s_menuTblOption.set<Object>("NameList", newNameList);
-			s_menuTblOption.set<Object>("GuidList", newGuidList);
-			s_menuTblOption.set<Object>("_CursolIndex", newCursorIndexList);
-			s_menuTblOption.set<Object>("CursolMax", newCursorMaxList);
-			s_menuTblOption.set<Object>("_CursolNameList", newCursorNameListList);
+			// Cursor name list needs to be rebuilt each time
+			{
+				Object newCursorNameListList = createArray("System.Array", s_newSoundOptionsIdx + numNewMenuItems);
+
+				// Fill new arrays
+				auto menuItemGen = getAllNewMenuItems();
+				auto menuItemIter = menuItemGen.begin();
+				for (int i = 0; i < s_newSoundOptionsIdx + numNewMenuItems; ++i)
+				{
+					Object cursorNameList;
+
+					if (i < s_newSoundOptionsIdx)
+					{
+						cursorNameList = cursorNameListList.get<Object>(i);
+					}
+					else
+					{
+						// get new item
+						MenuItem const *menuItem = *menuItemIter;
+
+						// build new cursor name list
+						cursorNameList = createArray("System.Guid", menuItem->m_valueNames->size());
+
+						// fill new cursor name list
+						for (int j = 0; j < menuItem->m_valueNames->size(); j++)
+						{
+							// set cursorNameList[j]
+							Guid cursorName = (*menuItem->m_valueNames)[j];
+							cursorNameList.set<Guid>(j, cursorName);
+						}
+
+						++menuItemIter;
+					}
+
+					newCursorNameListList.set<Object>(i, cursorNameList);
+				}
+
+				launcherOptionSound.set<Object>("_CursolNameList", newCursorNameListList);
+			}
 
 			// Show/hide the scrollbar
 			Object str_scrollBarPath = createString(L"/FSB_ref_Vertical_Button");
-			Object soundList = s_menuTblOption.get<Object>("_SoundList");
+			Object soundList = launcherOptionSound.get<Object>("_SoundList");
+
+			// set soundList.BarPath
+			// This should be done before set_ItemCount
+			// BarPath is a reflection property, so use the offset directly...
+			reframework::API::ManagedObject **barPath_ptr = (reframework::API::ManagedObject **)((intptr_t)soundList.m_object + FLUENT_SCROLL_LIST_OFFSET_BAR_PATH);
+			assert(barPath_ptr != nullptr);
+			reframework::API::ManagedObject *barPath = *barPath_ptr;
+			if (barPath != nullptr)
+			{
+				barPath->release();
+			}
+			*barPath_ptr = str_scrollBarPath.m_object;
+			str_scrollBarPath.m_object->add_ref();
+
+			// set soundList.ItemCount
+			soundList.set<std::int32_t>("ItemCount", s_newSoundOptionsIdx + numNewMenuItems);
 
 			// call soundList.getObject
 			// Technically the game calls getObject(System.String, System.Type),
@@ -154,188 +283,45 @@ void AudioMenuExtension::installHooks()
 			{
 				fluentScrollBar.set<bool>("Visible", false);
 			}
+
+			updateList(launcherOptionSound);
 		}));
-
-	// Hook method which sets up the Audio menu
-	s_doResizeFluentScrollList = false;
-	s_hooks.emplace_back(hook(
-		"app.cLauncherOptionSound",
-		"setupContent()",
-		[](int argc, void **argv, auto...)
-		{
-			s_menuTblOption = Object(argv[1]);
-
-			s_doResizeFluentScrollList = true;
-
-			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-		},
-		nullptr));
-
-	// Hook first TDB method which gets called after _SoundList is initialized in setupContent()
-	// Here we change the number of items in the list
-	s_hooks.emplace_back(hook(
-		"via.gui.FluentScrollList",
-		"get_ItemInstTbl",
-		[](int argc, void **argv, auto...)
-		{
-			if (!s_doResizeFluentScrollList)
-			{
-				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-			}
-			s_doResizeFluentScrollList = false;
-
-			ptrdiff_t numNewMenuItems = std::ranges::distance(getAllNewMenuItems());
-
-			Object soundList = Object(argv[1]);
-
-			Object str_scrollBarPath = createString(L"/FSB_ref_Vertical_Button");
-
-			// set soundList.BarPath
-			// This should be done before set_ItemCount
-			// BarPath is a reflection property, so use the offset directly...
-			reframework::API::ManagedObject **barPath_ptr = (reframework::API::ManagedObject **)((intptr_t)soundList.m_object + FLUENT_SCROLL_LIST_OFFSET_BAR_PATH);
-			assert(barPath_ptr != nullptr);
-			reframework::API::ManagedObject *barPath = *barPath_ptr;
-			if (barPath != nullptr)
-			{
-				barPath->release();
-			}
-			*barPath_ptr = str_scrollBarPath.m_object;
-			str_scrollBarPath.m_object->add_ref();
-
-			s_newSoundOptionsIdx = soundList.get<int32_t>("ItemCount");
-
-			// set soundList.ItemCount
-			soundList.set<std::int32_t>("ItemCount", s_newSoundOptionsIdx + numNewMenuItems);
-
-			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-		},
-		nullptr));
 
 	// Hook method which is called every tick while in Audio menu
 	// We basically need to replace this whole function with one which can handle list scrolling
 	s_hooks.emplace_back(hook(
-		"app.cLauncherOptionSound",
-		"doUpdate()",
+		"app.cLauncherOptionSound.doUpdate()",
 		[](int argc, void **argv, auto...)
 		{
-			auto updateList = [](Object menu)
-			{
-				Object soundList = menu.get<Object>("_SoundList");
+			Object launcherOptionSound = Object(argv[1]);
 
-				Object itemInstTbl = soundList.get<Object>("ItemInstTbl");
-				std::int32_t itemInstTblLength = itemInstTbl.get<std::int32_t>("Length");
+			std::int32_t selectedIndex = launcherOptionSound.get<std::int32_t>("_SelectedIndex");
+			Object soundList = launcherOptionSound.get<Object>("_SoundList");
+			Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
+			std::int32_t cursorIndexListLength = cursorIndexList.get<std::int32_t>("Length");
 
-				// get menu.NameList
-				Object nameList = menu.get<Object>("NameList");
-				Object cursorIndexList = menu.get<Object>("_CursolIndex");
-				Object cursorMaxList = menu.get<Object>("CursolMax");
-				Object cursorNameListList = menu.get<Object>("_CursolNameList");
-				Object volumeInitValueList = menu.get<Object>("VolumeInitValue");
-
-				std::uint32_t patternSlider = getStaticField<std::uint32_t>("via.gui.asset.ui00030000._ITM_List_Item_._Pattern_Slider");
-				std::uint32_t patternLRSelection = getStaticField<std::uint32_t>("via.gui.asset.ui00030000._ITM_List_Item_._Pattern_LR_Selection");
-
-				// create temporary strings
-				Object str_MsgId_Option_List_Item_Name = createString(L"MsgId_Option_List_Item_Name");
-				Object str_ObjPath_PNL_Option_List_Item_Slider_Path = createString(L"ObjPath_PNL_Option_List_Item_Slider_Path");
-				Object str_ObjPath_PNL_Option_List_Item_LR_Selection_Path = createString(L"ObjPath_PNL_Option_List_Item_LR_Selection_Path");
-				Object str_Float_Slider_Value_Init = createString(L"Float_Slider_Value_Init");
-				Object str_Float_Slider_Value_Current = createString(L"Float_Slider_Value_Current");
-				Object str_MsgId_LR_Selection_Button_Message = createString(L"MsgId_LR_Selection_Button_Message");
-				Object str_Bool_LR_Selection_Cursor_Left_Visible = createString(L"Bool_LR_Selection_Cursor_Left_Visible");
-				Object str_Bool_LR_Selection_Cursor_Right_Visible = createString(L"Bool_LR_Selection_Cursor_Right_Visible");
-
-				for (std::size_t i = 0; i < itemInstTblLength; ++i)
-				{
-					Object selectItem = itemInstTbl.get<Object>(i);
-					std::int32_t listIndex = selectItem.get<std::int32_t>("ListIndex");
-
-					// Normally the game will compute a MurmurHash3 of the string, but this is easier
-					Object parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_MsgId_Option_List_Item_Name});
-					Guid nameGuid = nameList.get<Guid>(listIndex);
-					parameterVariable.set<Guid>("ValueMessageId", {nameGuid});
-
-					Object cursorNameList = cursorNameListList.get<Object>(listIndex);
-					std::int32_t cursorIndex = cursorIndexList.get<std::int32_t>(listIndex);
-					std::int32_t cursorMax = cursorMaxList.get<std::int32_t>(listIndex);
-
-					// assume option is a slider type if it has no name list
-					if (cursorNameList.null())
-					{
-						selectItem.set<std::uint32_t>("StatePattern", patternSlider);
-
-						parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_ObjPath_PNL_Option_List_Item_Slider_Path});
-						Object objPath = parameterVariable.get<Object>("ValueObjectPath");
-						Object sliderPanel = selectItem.call<Object>("getObject(System.String)", {objPath});
-
-						Object paramVariable_floatSliderValueInit = sliderPanel.call<Object>("getParameterLegacy(System.String)", {str_Float_Slider_Value_Init});
-						double volumeInitValue = volumeInitValueList.get<double>(listIndex);
-						double sliderValueInit = volumeInitValue / (cursorMax - 1) * 100.0;
-						paramVariable_floatSliderValueInit.set<double>("ValueFloat", sliderValueInit);
-
-						Object paramVariable_floatSliderValueCurrent = sliderPanel.call<Object>("getParameterLegacy(System.String)", {str_Float_Slider_Value_Current});
-						double sliderValueCurrent = (double)cursorIndex / (cursorMax - 1) * 100.0;
-						paramVariable_floatSliderValueCurrent.set<double>("ValueFloat", sliderValueCurrent);
-					}
-					else
-					{
-						selectItem.set<std::uint32_t>("StatePattern", patternLRSelection);
-
-						parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_ObjPath_PNL_Option_List_Item_LR_Selection_Path});
-						Object objPath = parameterVariable.get<Object>("ValueObjectPath");
-						Object selectionPanel = selectItem.call<Object>("getObject(System.String)", {objPath});
-
-						Object parameterVariable_buttonMessage = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_MsgId_LR_Selection_Button_Message});
-						Guid cursorGuid = cursorNameList.get<Guid>(cursorIndex);
-						parameterVariable_buttonMessage.set<Guid>("ValueMessageId", cursorGuid);
-
-						Object parameterVariable_leftVisible = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_Bool_LR_Selection_Cursor_Left_Visible});
-						parameterVariable_leftVisible.set<bool>("ValueBool", cursorIndex > 0);
-
-						Object parameterVariable_rightVisible = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_Bool_LR_Selection_Cursor_Right_Visible});
-						parameterVariable_rightVisible.set<bool>("ValueBool", cursorIndex < cursorMax - 1);
-					}
-				}
-			};
-			auto updateGuidMessage = [](Object menu)
-			{
-				Object guidList = menu.get<Object>("GuidList");
-				std::int32_t selectedIndex = menu.get<std::int32_t>("_SelectedIndex");
-				Guid guid = guidList.get<Guid>(selectedIndex);
-
-				menu.call<void>("setGuidMessage(System.Guid)", {&guid});
-			};
-
-			ptrdiff_t numNewMenuItems = std::ranges::distance(getAllNewMenuItems());
-
-			Object menu = Object(argv[1]);
-
-			std::int32_t selectedIndex = menu.get<std::int32_t>("_SelectedIndex");
-			Object soundList = menu.get<Object>("_SoundList");
-
-			// call menu.isUpdateList()
+			// call launcherOptionSound.isUpdateList()
 			// returns true if different item is selected and updates selectedIndex
-			bool isUpdateList = menu.call<bool>(
+			bool isUpdateList = launcherOptionSound.call<bool>(
 				"isUpdateList",
 				{
 					&selectedIndex, // passed by ref
-					(void *)(intptr_t)(s_newSoundOptionsIdx + numNewMenuItems),
+					(void *)(intptr_t)(cursorIndexListLength),
 				});
 
 			if (isUpdateList)
 			{
-				menu.set<std::int32_t>("_SelectedIndex", selectedIndex);
+				launcherOptionSound.set<std::int32_t>("_SelectedIndex", selectedIndex);
 				soundList.set<std::int32_t>("SelectedIndex", selectedIndex);
-				updateList(menu);
-				updateGuidMessage(menu);
+				updateList(launcherOptionSound);
+				updateGuidMessage(launcherOptionSound);
 				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
 			}
 
-			// call menu.isUpdateListPage()
+			// call launcherOptionSound.isUpdateListPage()
 			// returns true if list is page scrolled and updates selectedIndex
 			// also calls soundList.set_SelectedIndex internally
-			bool isUpdateListPage = menu.call<bool>(
+			bool isUpdateListPage = launcherOptionSound.call<bool>(
 				"isUpdateListPage",
 				{
 					soundList,
@@ -344,14 +330,13 @@ void AudioMenuExtension::installHooks()
 
 			if (isUpdateListPage)
 			{
-				menu.set<std::int32_t>("_SelectedIndex", selectedIndex);
-				updateList(menu);
-				updateGuidMessage(menu);
+				launcherOptionSound.set<std::int32_t>("_SelectedIndex", selectedIndex);
+				updateList(launcherOptionSound);
+				updateGuidMessage(launcherOptionSound);
 				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
 			}
 
-			Object cursorIndexList = menu.get<Object>("_CursolIndex");
-			Object cursorMaxList = menu.get<Object>("CursolMax");
+			Object cursorMaxList = launcherOptionSound.get<Object>("CursolMax");
 			std::int32_t cursorIndex = cursorIndexList.get<std::int32_t>(selectedIndex);
 			std::int32_t cursorMax = cursorMaxList.get<std::int32_t>(selectedIndex);
 
@@ -359,7 +344,7 @@ void AudioMenuExtension::installHooks()
 			// returns true if different value chosen for selected item and updates cursorIndex
 			// The game can directly pass &cursorIndexList[selectedIndex], but we can't,
 			// so we have to use the temporary variable
-			bool isUpdateSelectedItem = menu.call<bool>(
+			bool isUpdateSelectedItem = launcherOptionSound.call<bool>(
 				"isUpdateSelectedItem(System.Int32, System.Int32, System.Boolean)",
 				{
 					&cursorIndex, // passed by ref
@@ -372,12 +357,12 @@ void AudioMenuExtension::installHooks()
 				cursorIndexList.set<std::int32_t>(selectedIndex, cursorIndex);
 
 				// The game only updates the selected item, but this is probably fine too
-				updateList(menu);
+				updateList(launcherOptionSound);
 
 				// Propagate settings
-				menu.call<void>("updateVolume", {});
+				launcherOptionSound.call<void>("updateVolume", {});
 
-				std::int32_t bgmType = menu.call<std::int32_t>("convertCusrotIndexToBGMType", {});
+				std::int32_t bgmType = launcherOptionSound.call<std::int32_t>("convertCusrotIndexToBGMType", {});
 				Object launcher = getSingleton("app.Launcher");
 				launcher.set<std::int32_t>("bgmType", bgmType);
 
@@ -385,6 +370,68 @@ void AudioMenuExtension::installHooks()
 			}
 
 			return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+		},
+		nullptr));
+
+	// Hook method which is called when user exits the Settings menu
+	// Here we retrieve the new setting values from the menu elements
+	s_hooks.emplace_back(hook(
+		"app.GUILauncherOption.onDestroy()",
+		[](int argc, void **argv, auto...)
+		{
+			assert(s_newSoundOptionsIdx >= 0);
+
+			Object guiLauncherOption = Object(argv[1]);
+
+			Object menuTbl = guiLauncherOption.get<Object>("_MenuTbl");
+			Object launcherOptionSound = menuTbl.get<Object>(std::to_underlying(app::GUILauncherOption::MENU_TYPE::SOUND));
+			Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
+			std::int32_t cursorIndexListLength = cursorIndexList.get<std::int32_t>("Length");
+
+			auto menuItemGen = getAllNewMenuItems();
+			auto menuItemIter = menuItemGen.begin();
+			for (std::size_t i = s_newSoundOptionsIdx; i < cursorIndexListLength; i++)
+			{
+				// get new item
+				MenuItem const *menuItem = *menuItemIter;
+
+				menuItem->setValue(cursorIndexList.get<std::int32_t>(i));
+
+				++menuItemIter;
+			}
+
+			s_newSoundOptionsIdx = -1;
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
+	// Hook method which resets settings to default
+	s_hooks.emplace_back(hook(
+		"app.cLauncherOptionSound.resetSetting()",
+		[](int argc, void **argv, auto...)
+		{
+			assert(s_newSoundOptionsIdx >= 0);
+
+			Object launcherOptionSound = Object(argv[1]);
+			Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
+			std::int32_t cursorIndexListLength = cursorIndexList.get<std::int32_t>("Length");
+
+			auto menuItemGen = getAllNewMenuItems();
+			auto menuItemIter = menuItemGen.begin();
+			for (std::size_t i = s_newSoundOptionsIdx; i < cursorIndexListLength; i++)
+			{
+				// get new item
+				MenuItem const *menuItem = *menuItemIter;
+
+				std::int32_t value = menuItem->m_defaultValue;
+				menuItem->setValue(value);
+				cursorIndexList.set<std::int32_t>(i, value);
+
+				++menuItemIter;
+			}
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
 		nullptr));
 }

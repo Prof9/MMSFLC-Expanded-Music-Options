@@ -23,14 +23,15 @@ protected:
 	static void installHooks();
 	static void uninstallHooks();
 
+	static void updateList(REFrameworkHelper::Object);
+	static void updateGuidMessage(REFrameworkHelper::Object);
+
 private:
 	// Constants
 	static const inline size_t ITEMS_PER_PAGE = 6;
 
 	// Static state
-	static inline REFrameworkHelper::Object s_menuTblOption;
-	static inline int s_newSoundOptionsIdx = -1;
-	static inline bool s_doResizeFluentScrollList = false;
+	static inline int s_newSoundOptionsIdx = -1; // Also indicates if menu has been resized
 
 	// Hooks
 	static inline std::vector<REFrameworkHelper::HookRef> s_hooks;
