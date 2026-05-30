@@ -11,10 +11,11 @@
 struct MessageReference
 {
 	friend struct MessageFile;
+	friend struct MessageManager;
 
 private:
-	const MessageFile *messageFile;
-	const uint64_t messageIndex;
+	MessageFile *messageFile;
+	uint64_t messageIndex;
 
 	MessageReference()
 		: messageFile(nullptr), messageIndex(0) {};

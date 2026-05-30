@@ -6,6 +6,7 @@
 #include <map>
 #include <string>
 #include <uchar.h>
+#include <utility>
 
 #include "Guid.hpp"
 #include "MessageFile.hpp"
@@ -14,9 +15,14 @@
 class MessageManager
 {
 	struct NativeObject;
+	struct Tree;
+	struct Node;
 
 private:
 	MessageManager::NativeObject *nativeObject;
+
+	std::pair<MessageManager::Node *, MessageManager::Node *> findNode(Guid const &guid) const;
+	MessageReference *getMessageReference(Guid const &guid) const;
 
 public:
 	MessageManager() = delete;
@@ -26,8 +32,6 @@ public:
 		assert(nativeObject != nullptr);
 	};
 
-	MessageReference *getMessageReference(Guid const &guid) const;
-	char16_t *getString(Guid const &guid, via::Language language) const;
-
+	bool createAndLoadMessages(std::map<Guid, std::map<via::Language, char16_t const *>> messages, via::Language fillRemainingWithLanguage = via::Language::Unknown) const;
 	bool replaceMessageByName(std::string name, std::map<via::Language, char16_t const *> languageStrings, via::Language fillRemainingWithLanguage = via::Language::Unknown) const;
 };

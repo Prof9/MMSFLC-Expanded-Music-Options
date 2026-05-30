@@ -47,13 +47,15 @@ static const std::vector<Guid> NEW_BGM_SELECTION_OPTIONS = {
 
 static std::vector<MenuItem> const NEW_MENU_ITEMS = {
     MenuItem{
-        .m_nameGuid = L"9dd4d43c-4b86-48f5-9b6f-d1816656760f"_guid,
+        //.m_nameGuid = L"9dd4d43c-4b86-48f5-9b6f-d1816656760f"_guid,
+        .m_nameGuid = L"9d3c9c45-c53f-42dd-b2fc-1beebdf63a28"_guid,
         .m_descriptionGuid = L"45cf3ad4-b931-4885-a4fe-8e26be1b1475"_guid,
         .m_valueNames = &NEW_BGM_SELECTION_OPTIONS,
         .m_value = &_bgmFieldSetting,
     },
     MenuItem{
-        .m_nameGuid = L"aeed2fdf-2495-4fe7-9b9d-afdd92a1a631"_guid,
+        //.m_nameGuid = L"aeed2fdf-2495-4fe7-9b9d-afdd92a1a631"_guid,
+        .m_nameGuid = L"ad4fcc9e-eccf-4e64-8afb-2286132ca680"_guid,
         .m_descriptionGuid = L"295acd67-b442-4328-af81-505199b3194a"_guid,
         .m_valueNames = &NEW_BGM_SELECTION_OPTIONS,
         .m_value = &_bgmBattleSetting,
@@ -134,6 +136,20 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
     assert(messageManagerNativeObject != nullptr);
     MessageManager messageManager(messageManagerNativeObject);
 
+    messageManager.createAndLoadMessages(
+        {
+            {L"9d3c9c45-c53f-42dd-b2fc-1beebdf63a28"_guid,
+             {
+                 {via::Language::English, u"Field BGM"},
+             }},
+            {L"ad4fcc9e-eccf-4e64-8afb-2286132ca680"_guid,
+             {
+                 {via::Language::English, u"Battle BGM"},
+             }},
+        },
+        via::Language::English);
+
+    // Extend audio menu
     new AudioMenuExtension(NEW_MENU_ITEMS);
 
     return true;
