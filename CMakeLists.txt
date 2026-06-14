@@ -23,6 +23,7 @@ include_directories(SYSTEM
 )
 add_library(REF_PLUGIN SHARED
 	"src/AudioMenuExtension.cpp"
+	"src/CustomPlaylistMenuItem.cpp"
 	"src/Guid.cpp"
 	"src/Main.cpp"
 	"src/MenuItem.cpp"

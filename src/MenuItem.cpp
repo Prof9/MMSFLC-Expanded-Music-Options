@@ -20,3 +20,13 @@ void MenuItem::setValue(std::int32_t value) const
 	}
 	*m_value = value;
 }
+
+bool MenuItem::onEnter()
+{
+	return false;
+}
+
+bool MenuItem::onUpdate()
+{
+	return true;
+}

@@ -12,19 +12,17 @@
 class AudioMenuExtension : public MenuExtension<AudioMenuExtension>
 {
 	friend class MenuExtension;
+	friend class MenuExtension<AudioMenuExtension>;
 
 public:
-	/// @brief Create new menu extension.
-	/// @param newMenuItems New menu items which are part of this extension.
-	AudioMenuExtension(std::span<MenuItem const> newMenuItems)
-		: MenuExtension(newMenuItems) {}
+	using MenuExtension::MenuExtension;
+
+	static void updateList(REFrameworkHelper::Object);
+	static void updateGuidMessage(REFrameworkHelper::Object);
 
 protected:
 	static void installHooks();
 	static void uninstallHooks();
-
-	static void updateList(REFrameworkHelper::Object);
-	static void updateGuidMessage(REFrameworkHelper::Object);
 
 private:
 	// Constants

@@ -50,7 +50,7 @@ namespace REFrameworkHelper
 		void set(size_t idx, T value);
 
 		template <typename T>
-		T call(std::string_view funcName, std::vector<void *> args);
+		T call(std::string_view funcName, std::vector<void *> args = {});
 
 		operator void *() const { return this->m_object; }
 

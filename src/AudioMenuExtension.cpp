@@ -164,12 +164,12 @@ void AudioMenuExtension::installHooks()
 					else
 					{
 						// get new item
-						MenuItem const *menuItem = *menuItemIter;
+						MenuItem &menuItem = *menuItemIter;
 
-						nameGuid = menuItem->m_nameGuid;
-						descriptionGuid = menuItem->m_descriptionGuid;
-						cursorMax = menuItem->m_valueNames->size();
-						cursorIdx = menuItem->getValue();
+						nameGuid = menuItem.m_nameGuid;
+						descriptionGuid = menuItem.m_descriptionGuid;
+						cursorMax = menuItem.m_valueNames->size();
+						cursorIdx = menuItem.getValue();
 
 						++menuItemIter;
 					}
@@ -204,16 +204,16 @@ void AudioMenuExtension::installHooks()
 					else
 					{
 						// get new item
-						MenuItem const *menuItem = *menuItemIter;
+						MenuItem &menuItem = *menuItemIter;
 
 						// build new cursor name list
-						cursorNameList = createArray("System.Guid", menuItem->m_valueNames->size());
+						cursorNameList = createArray("System.Guid", menuItem.m_valueNames->size());
 
 						// fill new cursor name list
-						for (int j = 0; j < menuItem->m_valueNames->size(); j++)
+						for (int j = 0; j < menuItem.m_valueNames->size(); j++)
 						{
 							// set cursorNameList[j]
-							Guid cursorName = (*menuItem->m_valueNames)[j];
+							Guid cursorName = (*menuItem.m_valueNames)[j];
 							cursorNameList.set<Guid>(j, cursorName);
 						}
 
@@ -360,13 +360,42 @@ void AudioMenuExtension::installHooks()
 				updateList(launcherOptionSound);
 
 				// Propagate settings
-				launcherOptionSound.call<void>("updateVolume", {});
+				launcherOptionSound.call<void>("updateVolume");
 
-				std::int32_t bgmType = launcherOptionSound.call<std::int32_t>("convertCusrotIndexToBGMType", {});
+				std::int32_t bgmType = launcherOptionSound.call<std::int32_t>("convertCusrotIndexToBGMType");
 				Object launcher = getSingleton("app.Launcher");
 				launcher.set<std::int32_t>("bgmType", bgmType);
 
 				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
+
+			if (selectedIndex >= s_newSoundOptionsIdx)
+			{
+				// Get menu item
+				auto menuItemGen = getAllNewMenuItems();
+				auto menuItemIter = menuItemGen.begin();
+				std::ranges::advance(menuItemIter, selectedIndex - s_newSoundOptionsIdx);
+				MenuItem &menuItem = *menuItemIter;
+
+				// call app.GameInputManager.isLauncherInputSuccess()
+				// returns true if key is pressed on item
+				Object gameInputManager = getSingleton("app.GameInputManager");
+				bool isInputDecide = gameInputManager.call<bool>(
+					"isLauncherInputSuccess(app.LauncherInputKey.KEY)",
+					{
+						(void *)(intptr_t)app::LauncherInputKey::KEY::DECIDE,
+					});
+				if (isInputDecide && menuItem.onEnter())
+				{
+					Object soundMilkyManager = getType("app.sound.SoundMilkyManager").get<Object>("_Instance");
+					soundMilkyManager.call<void>(
+						"playSeById(System.UInt16)",
+						{
+							(void *)(intptr_t)app::sound::SoundMilkyDefine::SeID::LAUNCHER_OK,
+						});
+
+					return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+				}
 			}
 
 			return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
@@ -393,9 +422,9 @@ void AudioMenuExtension::installHooks()
 			for (std::size_t i = s_newSoundOptionsIdx; i < cursorIndexListLength; i++)
 			{
 				// get new item
-				MenuItem const *menuItem = *menuItemIter;
+				MenuItem &menuItem = *menuItemIter;
 
-				menuItem->setValue(cursorIndexList.get<std::int32_t>(i));
+				menuItem.setValue(cursorIndexList.get<std::int32_t>(i));
 
 				++menuItemIter;
 			}
@@ -422,10 +451,10 @@ void AudioMenuExtension::installHooks()
 			for (std::size_t i = s_newSoundOptionsIdx; i < cursorIndexListLength; i++)
 			{
 				// get new item
-				MenuItem const *menuItem = *menuItemIter;
+				MenuItem &menuItem = *menuItemIter;
 
-				std::int32_t value = menuItem->m_defaultValue;
-				menuItem->setValue(value);
+				std::int32_t value = menuItem.m_defaultValue;
+				menuItem.setValue(value);
 				cursorIndexList.set<std::int32_t>(i, value);
 
 				++menuItemIter;
