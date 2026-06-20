@@ -96,6 +96,8 @@ namespace REFrameworkHelper
 	template <typename T>
 	T getStaticField(std::string_view fullName);
 
+	Object createObject(std::string_view typeName);
+
 	Object createArray(std::string_view typeName, size_t size);
 
 	Object createString(wchar_t const *string);

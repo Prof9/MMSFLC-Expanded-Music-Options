@@ -314,6 +314,28 @@ T REFrameworkHelper::getStaticField(std::string_view fullName)
 	return type.get<T>(fieldName);
 }
 
+/// @brief Helper function to create object of given type
+/// @param typeName Fully qualified name of type, e.g. namespace.namespace.type
+/// @return Created object
+Object REFrameworkHelper::createObject(std::string_view typeName)
+{
+	auto &api = reframework::API::get();
+	auto tdb = api->tdb();
+
+	reframework::API::TypeDefinition *type = tdb->find_type(typeName);
+	if (type == nullptr)
+	{
+		api->log_error("createObject: unknown type {}", typeName);
+		assert(0);
+		return Object();
+	}
+
+	reframework::API::ManagedObject *object = type->create_instance();
+	assert(object != nullptr);
+
+	return Object(object);
+}
+
 /// @brief Helper function to create array of given type and size
 /// @param typeName Fully qualified name of type, e.g. namespace.namespace.type
 /// @param size Size of array
