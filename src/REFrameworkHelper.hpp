@@ -1,8 +1,10 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <string_view>
 #include <tuple>
+#include <utility>
 
 #include <reframework/API.hpp>
 
@@ -28,30 +30,241 @@ namespace REFrameworkHelper
 	/// @brief Wrapper for reframework::API::ManagedObject
 	struct Object
 	{
+		template <typename T>
+		struct ObjectGetterSetterByIndex;
+		template <typename T>
+		struct ObjectGetterSetterByName;
+
+		template <typename T>
+		struct ObjectGetterSetter
+		{
+		public:
+			Object m_obj;
+
+			operator T()
+			{
+				return getInternal();
+			}
+
+			T operator=(T value)
+			{
+				setInternal(value);
+				return value;
+			}
+
+			template <typename T = Object>
+			T get(std::string_view fieldName, bool isValueType = false) const
+			{
+				return getInternal().get(fieldName, isValueType);
+			}
+
+			template <typename T = Object>
+			void set(std::string_view fieldName, T value, bool isValueType = false)
+			{
+				getInternal().set(fieldName, value, isValueType);
+			}
+
+			template <typename T = Object>
+			T get(std::size_t idx) const
+			{
+				return getInternal().get(idx);
+			}
+
+			template <typename T = Object>
+			void set(std::size_t idx, T value)
+			{
+				getInternal().set(idx, value);
+			}
+
+			template <typename T = Object, class Enum>
+				requires std::is_enum_v<Enum>
+			T get(Enum e) const
+			{
+				return getInternal.get(e);
+			}
+
+			template <typename T = Object, class Enum>
+				requires std::is_enum_v<Enum>
+			void set(Enum e, T value)
+			{
+				getInternal().set(e, value);
+			}
+
+			template <typename TReturn = Object>
+			ObjectGetterSetterByName<TReturn> operator[](std::string_view name)
+			{
+				return ObjectGetterSetterByName<TReturn>(getInternal(), name);
+			}
+
+			template <typename TReturn = Object>
+			ObjectGetterSetterByIndex<TReturn> operator[](std::size_t idx)
+			{
+				return ObjectGetterSetterByIndex<TReturn>(getInternal(), idx);
+			}
+
+			template <typename TReturn = Object, class Enum>
+				requires std::is_enum_v<Enum>
+			ObjectGetterSetterByIndex<TReturn> operator[](Enum e)
+			{
+				return ObjectGetterSetterByIndex<TReturn>(getInternal(), std::to_underlying(e));
+			}
+
+			template <typename TReturn = Object>
+			const TReturn operator[](std::string_view name) const
+			{
+				return getInternal().get<TReturn>(name);
+			}
+
+			template <typename TReturn = Object>
+			const TReturn operator[](std::size_t idx) const
+			{
+				return getInternal().get<TReturn>(idx);
+			}
+
+			template <typename TReturn = Object, class Enum>
+				requires std::is_enum_v<Enum>
+			const TReturn operator[](Enum e) const
+			{
+				return getInternal().get<TReturn>(std::to_underlying(e));
+			}
+
+			template <typename TReturn = void>
+			TReturn call(std::string_view funcName, std::vector<void *> args = {})
+			{
+				return getInternal().call<TReturn>(funcName, args);
+			}
+
+		protected:
+			ObjectGetterSetter(Object obj) : m_obj(obj) {}
+
+			virtual T getInternal() = 0;
+			virtual void setInternal(T value) = 0;
+		};
+
+		template <typename T>
+		struct ObjectGetterSetterByIndex : ObjectGetterSetter<T>
+		{
+			ObjectGetterSetterByIndex(Object obj, std::size_t index) : ObjectGetterSetter<T>(obj), m_index(index) {}
+
+			T operator=(T value)
+			{
+				return ObjectGetterSetter<T>::operator=(value);
+			}
+
+		protected:
+			std::size_t m_index;
+
+			T getInternal()
+			{
+				return this->m_obj.get<T>(m_index);
+			}
+
+			void setInternal(T value)
+			{
+				this->m_obj.set<T>(m_index, value);
+			}
+		};
+
+		template <typename T>
+		struct ObjectGetterSetterByName : ObjectGetterSetter<T>
+		{
+			ObjectGetterSetterByName(Object obj, std::string_view name) : ObjectGetterSetter<T>(obj), m_name(name) {}
+
+			T operator=(T value)
+			{
+				return ObjectGetterSetter<T>::operator=(value);
+			}
+
+		protected:
+			std::string_view m_name;
+
+			T getInternal()
+			{
+				return this->m_obj.get<T>(m_name);
+			}
+
+			void setInternal(T value)
+			{
+				this->m_obj.set<T>(m_name, value);
+			}
+		};
+
 		reframework::API::ManagedObject *m_object;
 
 		Object() : Object((reframework::API::ManagedObject *)nullptr) {}
-		Object(void *object) : Object((reframework::API::ManagedObject *)object) {}
+		Object(const void *object) : Object((reframework::API::ManagedObject *)object) {}
 		Object(reframework::API::ManagedObject *object)
 			: m_object(object) {}
 
-		bool null() { return m_object == nullptr; }
-
-		template <typename T>
+		template <typename T = Object>
 		T get(std::string_view fieldName, bool isValueType = false);
 
-		template <typename T>
+		template <typename T = Object>
 		void set(std::string_view fieldName, T value, bool isValueType = false);
 
-		template <typename T>
-		T get(size_t idx);
+		template <typename T = Object>
+		T get(std::size_t idx);
 
-		template <typename T>
-		void set(size_t idx, T value);
+		template <typename T = Object>
+		void set(std::size_t idx, T value);
 
-		template <typename T>
+		template <typename T = Object, class Enum>
+			requires std::is_enum_v<Enum>
+		T get(Enum e)
+		{
+			return this->get(std::to_underlying(e));
+		}
+
+		template <typename T = Object, class Enum>
+			requires std::is_enum_v<Enum>
+		void set(Enum e, T value)
+		{
+			this->set(std::to_underlying(e), value);
+		}
+
+		template <typename T = Object>
+		ObjectGetterSetterByName<T> operator[](std::string_view name)
+		{
+			return ObjectGetterSetterByName<T>(*this, name);
+		}
+
+		template <typename T = Object>
+		ObjectGetterSetterByIndex<T> operator[](std::size_t idx)
+		{
+			return ObjectGetterSetterByIndex<T>(*this, idx);
+		}
+
+		template <typename T = Object, class Enum>
+			requires std::is_enum_v<Enum>
+		ObjectGetterSetterByIndex<T> operator[](Enum e)
+		{
+			return ObjectGetterSetterByIndex<T>(*this, std::to_underlying(e));
+		}
+
+		template <typename T = Object>
+		const T operator[](std::string_view name) const
+		{
+			return this->get<T>(name);
+		}
+
+		template <typename T = Object>
+		const T operator[](std::size_t idx) const
+		{
+			return this->get<T>(idx);
+		}
+
+		template <typename T = Object, class Enum>
+			requires std::is_enum_v<Enum>
+		const T operator[](Enum e) const
+		{
+			return this->get<T>(std::to_underlying(e));
+		}
+
+		template <typename T = void>
 		T call(std::string_view funcName, std::vector<void *> args = {});
 
+		friend bool
+		operator==(Object const &a, Object const &b) = default;
 		operator void *() const { return this->m_object; }
 
 	private:
@@ -62,10 +275,10 @@ namespace REFrameworkHelper
 		void setField(std::string_view fieldName, T value, bool isValueType = false);
 
 		template <typename T>
-		T getArray(size_t idx, T reframework::InvokeRet::*invokeRetField);
+		T getArray(std::size_t idx, T reframework::InvokeRet::*invokeRetField);
 
 		template <typename T>
-		void setArray(size_t idx, T value);
+		void setArray(std::size_t idx, T value);
 
 		template <typename T>
 		T callInternal(std::string_view funcName, T reframework::InvokeRet::*invokeRetField, std::vector<void *> args);
@@ -81,10 +294,14 @@ namespace REFrameworkHelper
 		Type(reframework::API::TypeDefinition *type)
 			: m_type(type) {}
 
-		bool null() { m_type == nullptr; }
+		template <typename T = Object>
+		const T operator[](std::string_view name) const
+		{
+			return this->get<T>(name);
+		}
 
-		template <typename T>
-		T get(std::string_view fieldName, bool isValueType = false);
+		template <typename T = Object>
+		T get(std::string_view fieldName, bool isValueType = false) const;
 	};
 
 	HookRef hook(std::string_view fullName, REFPreHookFn pre_fn, REFPostHookFn post_fn, bool ignoreJmp = false);
@@ -98,7 +315,7 @@ namespace REFrameworkHelper
 
 	Object createObject(std::string_view typeName);
 
-	Object createArray(std::string_view typeName, size_t size);
+	Object createArray(std::string_view typeName, std::size_t size);
 
 	Object createString(wchar_t const *string);
 };

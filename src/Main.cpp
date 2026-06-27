@@ -22,6 +22,8 @@
 #include "MessageManager.hpp"
 #include "MessageUtility.hpp"
 
+using namespace REFrameworkHelper;
+
 #define CONFIG_DIR "reframework\\data\\ExpandedMusicOptions"
 #define CONFIG_FILENAME CONFIG_DIR "\\config.bin"
 
@@ -100,11 +102,11 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
         {
             {L"9d3c9c45-c53f-42dd-b2fc-1beebdf63a28"_guid,
              {
-                 {via::Language::English, u"Field BGM"},
+                 {via::Language::English, u"Wave World BGM"},
              }},
             {L"ad4fcc9e-eccf-4e64-8afb-2286132ca680"_guid,
              {
-                 {via::Language::English, u"Battle BGM"},
+                 {via::Language::English, u"Virus Battle BGM"},
              }},
             {L"c564c411-216f-498f-9c53-459408c675d5"_guid,
              {
@@ -117,43 +119,111 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
         },
         via::Language::English);
 
+    static std::shared_ptr<CustomPlaylistMenuItem> customPlaylistWaveWorld = std::make_unique<CustomPlaylistMenuItem>(
+        L"9d3c9c45-c53f-42dd-b2fc-1beebdf63a28"_guid,
+        L"45cf3ad4-b931-4885-a4fe-8e26be1b1475"_guid,
+        &NEW_BGM_SELECTION_OPTIONS,
+        &_bgmFieldSetting);
+    static std::shared_ptr<CustomPlaylistMenuItem> customPlaylistVirusBattle = std::make_unique<CustomPlaylistMenuItem>(
+        L"ad4fcc9e-eccf-4e64-8afb-2286132ca680"_guid,
+        L"295acd67-b442-4328-af81-505199b3194a"_guid,
+        &NEW_BGM_SELECTION_OPTIONS,
+        &_bgmBattleSetting);
+
     // Extend audio menu
-    static std::vector<std::unique_ptr<MenuItem>> NEW_MENU_ITEMS = []
-    {
-        std::vector<std::unique_ptr<MenuItem>> items;
-        items.emplace_back(std::make_unique<CustomPlaylistMenuItem>(
-            L"9d3c9c45-c53f-42dd-b2fc-1beebdf63a28"_guid,
-            L"45cf3ad4-b931-4885-a4fe-8e26be1b1475"_guid,
-            &NEW_BGM_SELECTION_OPTIONS,
-            &_bgmFieldSetting));
-        items.emplace_back(std::make_unique<CustomPlaylistMenuItem>(
-            L"ad4fcc9e-eccf-4e64-8afb-2286132ca680"_guid,
-            L"295acd67-b442-4328-af81-505199b3194a"_guid,
-            &NEW_BGM_SELECTION_OPTIONS,
-            &_bgmBattleSetting));
-        items.emplace_back(std::make_unique<MenuItem>(
-            L"5327f1b2-51f8-4b7d-9510-d90b2cedd1f2"_guid,
-            L"7acea6b1-a466-45b9-890a-74ecbe0adee1"_guid,
-            &NEW_BGM_SELECTION_OPTIONS,
-            &_bgmSetting3));
-        items.emplace_back(std::make_unique<MenuItem>(
-            L"6e45bcd6-0f76-4576-8b42-9ac87762328e"_guid,
-            L"0a12f712-9d90-42b3-bb90-f123dedfc6b3"_guid,
-            &NEW_BGM_SELECTION_OPTIONS,
-            &_bgmSetting4));
-        items.emplace_back(std::make_unique<MenuItem>(
-            L"43293d60-97ef-4e61-9de7-abafe61c42d8"_guid,
-            L"f0a6ffdd-413a-4a22-8382-8fc8a6e4e159"_guid,
-            &NEW_BGM_SELECTION_OPTIONS,
-            &_bgmSetting5));
-        items.emplace_back(std::make_unique<MenuItem>(
-            L"f3240d92-582d-4013-ab24-ae564c872d85"_guid,
-            L"1c09fcc8-3f61-4ed1-bd4c-f2742f84c432"_guid,
-            &NEW_BGM_SELECTION_OPTIONS,
-            &_bgmSetting6));
-        return items;
-    }();
-    new AudioMenuExtension(NEW_MENU_ITEMS);
+    std::vector<std::shared_ptr<MenuItem>> newMenuItems = {
+        customPlaylistWaveWorld,
+        customPlaylistVirusBattle,
+    };
+    new AudioMenuExtension(newMenuItems);
+
+    // Override corePlayBgm
+    hook(
+        "app.cSound_Base.corePlayBgm",
+        [](int argc, void **argv, auto...)
+        {
+            static bool isRecursiveCall = false;
+            if (isRecursiveCall)
+            {
+                return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+            }
+            // try
+            //{
+
+            Object sound = Object(argv[1]);
+            std::uint32_t trigger = (std::uint32_t)(intptr_t)argv[2];
+            Object origId2TriggerId = Object(argv[3]);
+            std::uint32_t playerId = (std::uint32_t)(intptr_t)argv[4];
+
+            std::uint8_t bgmPlayTypeFavorite = sound.get<std::uint8_t>("BgmPlayType_Favorite");
+
+            if (trigger == 0xE98A8F76 || // SF1 - Ride On (SF1 Version)
+                trigger == 0xBA31B7A6 || // SF2 - Ride On (SF2 Version)
+                trigger == 0xDAE5756C)   // SF3 - Wave Battle (SF3 Version)
+            {
+                // Leverage existing function to select random song from playlist
+                std::uint8_t bgmPlayType = sound.get<std::uint8_t>("_CurrentBgmPlayType");
+                sound.get<std::uint8_t>("_CurrentBgmPlayType");
+                sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayTypeFavorite);
+
+                Object saveData = getSingleton("app.Launcher")["_saveData"];
+                Object favoriteMusicList = saveData["favoriteMusicList"];
+                saveData["favoriteMusicList"] = customPlaylistVirusBattle->m_favoritesList;
+
+                isRecursiveCall = true;
+                sound.call(
+                    "corePlayBgm",
+                    {
+                        (void *)(intptr_t)trigger,
+                        origId2TriggerId,
+                        (void *)(intptr_t)playerId,
+                    });
+                isRecursiveCall = false;
+
+                sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayType);
+                saveData["favoriteMusicList"] = favoriteMusicList;
+
+                return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+            }
+            if (trigger == 0x59AF1699 || // SF1 - Wave World (SF1 Version)
+                trigger == 0x296E097F || // SF2 - Wave World (SF2 Version)
+                trigger == 0xBDAE2406    // SF3 - Wave World (SF3 Version)
+            )
+            {
+            }
+
+            Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
+            std::uint8_t currentBgmPlayType = sound.get<std::uint8_t>("_CurrentBgmPlayType");
+
+            Object soundMilkyManager = sound["_Manager"];
+            Object extraResourceList = soundMilkyManager["_ExtraResourceList"];
+            Object extraResource01 = extraResourceList.get(app::sound::SoundMilkyManager::ExtraResourceTypeEnum::ExtraResource01);
+            Object extraResource02 = extraResourceList.get(app::sound::SoundMilkyManager::ExtraResourceTypeEnum::ExtraResource02);
+
+            switch ((app::Launcher::BGMType)currentBgmPlayType)
+            {
+            case app::Launcher::BGMType::Exe1:
+            case app::Launcher::BGMType::Exe2:
+            case app::Launcher::BGMType::Exe3:
+            case app::Launcher::BGMType::Exe4:
+            case app::Launcher::BGMType::Exe4_5:
+            case app::Launcher::BGMType::Exe5:
+            case app::Launcher::BGMType::Exe5_2:
+            case app::Launcher::BGMType::Exe6:
+                break;
+            case app::Launcher::BGMType::Favorite:
+                break;
+            }
+
+            //}
+            // catch (...)
+            //{
+            //    return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+            //}
+
+            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+        },
+        nullptr);
 
     return true;
 }

@@ -12,7 +12,7 @@ CustomPlaylistMenuItem::CustomPlaylistMenuItem(Guid nameGuid, Guid descriptionGu
 {
 	// Create new favorites list
 	m_favoritesList = createObject("System.Collections.Generic.List`1<app.GUILauncherMusicPlayer.MusicInfo>");
-	m_favoritesList.call<void>(".ctor()");
+	m_favoritesList.call(".ctor()");
 	m_favoritesList.m_object->add_ref();
 }
 
@@ -29,7 +29,7 @@ bool CustomPlaylistMenuItem::onEnter()
 	}
 
 	Object launcher = getSingleton("app.Launcher");
-	launcher.call<void>(
+	launcher.call(
 		"showLoadingGUI(app.LauncherFadeUserData.FadeUsage, System.Boolean, System.Boolean)",
 		{
 			(void *)(intptr_t)app::LauncherFadeUserData::FadeUsage::GalleryToMusicPlayer2Way,
@@ -50,21 +50,18 @@ bool CustomPlaylistMenuItem::onUpdate()
 	case State::OpeningMusicPlayer:
 	{
 		Object launcher = getSingleton("app.Launcher");
-		Object loading = launcher.get<Object>("loadingGuiBehavior");
-		bool isFadeInAnimEnd = loading.call<bool>("isFadeInAnimEnd()");
+		bool isFadeInAnimEnd = launcher["loadingGuiBehavior"].call<bool>("isFadeInAnimEnd()");
 		if (isFadeInAnimEnd)
 		{
 			// set DrawSelf = false
-			Object guiBehaviors = launcher.get<Object>("guiBehaviors");
-			Object guiLauncherOption = guiBehaviors.get<Object>(std::to_underlying(app::Launcher::LauncherGUIId::Option));
-			Object guiLauncherOptionObject = guiLauncherOption.get<Object>("GameObject");
-			guiLauncherOptionObject.set<bool>("DrawSelf", false);
+
+			launcher["guiBehaviors"][app::Launcher::LauncherGUIId::Option]["GameObject"].set<bool>("DrawSelf", false);
 
 			s_activeInstance = this;
 			installHooks();
 
 			// call openMusicPlayer()
-			launcher.call<void>("openMusicPlayer()");
+			launcher.call("openMusicPlayer()");
 
 			m_state = State::InMusicPlayer;
 		}
@@ -77,19 +74,17 @@ bool CustomPlaylistMenuItem::onUpdate()
 		if (isMusicPlayerEnd)
 		{
 			// call closeMusicPlayer()
-			launcher.call<void>("closeMusicPlayer()");
+			launcher.call("closeMusicPlayer()");
 
 			uninstallHooks();
 			s_activeInstance = nullptr;
 
 			// set DrawSelf = true
-			Object guiBehaviors = launcher.get<Object>("guiBehaviors");
-			Object guiLauncherOption = guiBehaviors.get<Object>(std::to_underlying(app::Launcher::LauncherGUIId::Option));
-			Object guiLauncherOptionObject = guiLauncherOption.get<Object>("GameObject");
-			guiLauncherOptionObject.set<bool>("DrawSelf", true);
+
+			launcher["guiBehaviors"][app::Launcher::LauncherGUIId::Option]["GameObject"].set<bool>("DrawSelf", true);
 
 			// call hideLoadingGUIIfShowed()
-			launcher.call<void>(
+			launcher.call(
 				"hideLoadingGUIIfShowed(System.Boolean)",
 				{
 					(void *)(intptr_t)false,
@@ -123,9 +118,7 @@ void CustomPlaylistMenuItem::installHooks()
 		[](auto...)
 		{
 			// Set this instance's favorites list
-			launcherMusicPlayer.set<Object>("favoriteMusicList", s_activeInstance->m_favoritesList);
-
-			launcherMusicPlayer.m_object = nullptr;
+			launcherMusicPlayer.set("favoriteMusicList", s_activeInstance->m_favoritesList);
 		}));
 
 	// Hook method which saves launcher data to avoid saving
@@ -161,7 +154,7 @@ void CustomPlaylistMenuItem::uninstallHooks()
 /// @return Number of flags which are 1
 std::size_t CustomPlaylistMenuItem::countNewAlbumFlags()
 {
-	Object musicAlbumNewFlags = getSingleton("app.Launcher").get<Object>("_saveData").get<Object>("musicAlbumNewFlags");
+	Object musicAlbumNewFlags = getSingleton("app.Launcher")["_saveData"]["musicAlbumNewFlags"];
 	std::size_t length = musicAlbumNewFlags.get<std::int32_t>("Length");
 	std::size_t numNewAlbumFlags = 0;
 	for (std::size_t i = 0; i < length; ++i)

@@ -20,14 +20,14 @@ static const ptrdiff_t FLUENT_SCROLL_LIST_OFFSET_BAR_PATH = 0x2D0;
 /// @param launcherOptionSound app.cLauncherOptionSound object
 void AudioMenuExtension::updateList(Object launcherOptionSound)
 {
-	Object soundList = launcherOptionSound.get<Object>("_SoundList");
-	Object nameList = launcherOptionSound.get<Object>("NameList");
-	Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
-	Object cursorMaxList = launcherOptionSound.get<Object>("CursolMax");
-	Object cursorNameListList = launcherOptionSound.get<Object>("_CursolNameList");
-	Object volumeInitValueList = launcherOptionSound.get<Object>("VolumeInitValue");
+	Object soundList = launcherOptionSound["_SoundList"];
+	Object nameList = launcherOptionSound["NameList"];
+	Object cursorIndexList = launcherOptionSound["_CursolIndex"];
+	Object cursorMaxList = launcherOptionSound["CursolMax"];
+	Object cursorNameListList = launcherOptionSound["_CursolNameList"];
+	Object volumeInitValueList = launcherOptionSound["VolumeInitValue"];
 
-	Object itemInstTbl = soundList.get<Object>("ItemInstTbl");
+	Object itemInstTbl = soundList["ItemInstTbl"];
 	std::int32_t itemInstTblLength = itemInstTbl.get<std::int32_t>("Length");
 
 	std::uint32_t patternSlider = getStaticField<std::uint32_t>("via.gui.asset.ui00030000._ITM_List_Item_._Pattern_Slider");
@@ -45,7 +45,7 @@ void AudioMenuExtension::updateList(Object launcherOptionSound)
 
 	for (std::size_t i = 0; i < itemInstTblLength; ++i)
 	{
-		Object selectItem = itemInstTbl.get<Object>(i);
+		Object selectItem = itemInstTbl[i];
 		std::int32_t listIndex = selectItem.get<std::int32_t>("ListIndex");
 
 		// Normally the game will compute a MurmurHash3 of the string, but this is easier
@@ -53,17 +53,17 @@ void AudioMenuExtension::updateList(Object launcherOptionSound)
 		Guid nameGuid = nameList.get<Guid>(listIndex);
 		parameterVariable.set<Guid>("ValueMessageId", {nameGuid});
 
-		Object cursorNameList = cursorNameListList.get<Object>(listIndex);
+		Object cursorNameList = cursorNameListList[listIndex];
 		std::int32_t cursorIndex = cursorIndexList.get<std::int32_t>(listIndex);
 		std::int32_t cursorMax = cursorMaxList.get<std::int32_t>(listIndex);
 
 		// assume option is a slider type if it has no name list
-		if (cursorNameList.null())
+		if (cursorNameList == nullptr)
 		{
 			selectItem.set<std::uint32_t>("StatePattern", patternSlider);
 
 			parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_ObjPath_PNL_Option_List_Item_Slider_Path});
-			Object objPath = parameterVariable.get<Object>("ValueObjectPath");
+			Object objPath = parameterVariable["ValueObjectPath"];
 			Object sliderPanel = selectItem.call<Object>("getObject(System.String)", {objPath});
 
 			Object paramVariable_floatSliderValueInit = sliderPanel.call<Object>("getParameterLegacy(System.String)", {str_Float_Slider_Value_Init});
@@ -80,7 +80,7 @@ void AudioMenuExtension::updateList(Object launcherOptionSound)
 			selectItem.set<std::uint32_t>("StatePattern", patternLRSelection);
 
 			parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_ObjPath_PNL_Option_List_Item_LR_Selection_Path});
-			Object objPath = parameterVariable.get<Object>("ValueObjectPath");
+			Object objPath = parameterVariable["ValueObjectPath"];
 			Object selectionPanel = selectItem.call<Object>("getObject(System.String)", {objPath});
 
 			Object parameterVariable_buttonMessage = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_MsgId_LR_Selection_Button_Message});
@@ -100,11 +100,11 @@ void AudioMenuExtension::updateList(Object launcherOptionSound)
 /// @param launcherOptionSound app.cLauncherOptionSound object
 void AudioMenuExtension::updateGuidMessage(Object launcherOptionSound)
 {
-	Object guidList = launcherOptionSound.get<Object>("GuidList");
+	Object guidList = launcherOptionSound["GuidList"];
 	std::int32_t selectedIndex = launcherOptionSound.get<std::int32_t>("_SelectedIndex");
 	Guid guid = guidList.get<Guid>(selectedIndex);
 
-	launcherOptionSound.call<void>("setGuidMessage(System.Guid)", {&guid});
+	launcherOptionSound.call("setGuidMessage(System.Guid)", {&guid});
 }
 
 /// @brief Install all hooks used for audio menu extensions
@@ -127,11 +127,11 @@ void AudioMenuExtension::installHooks()
 
 			Object launcherOptionSound = s_launcherOptionSound;
 
-			Object nameList = launcherOptionSound.get<Object>("NameList");
-			Object guidList = launcherOptionSound.get<Object>("GuidList");
-			Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
-			Object cursorMaxList = launcherOptionSound.get<Object>("CursolMax");
-			Object cursorNameListList = launcherOptionSound.get<Object>("_CursolNameList");
+			Object nameList = launcherOptionSound["NameList"];
+			Object guidList = launcherOptionSound["GuidList"];
+			Object cursorIndexList = launcherOptionSound["_CursolIndex"];
+			Object cursorMaxList = launcherOptionSound["CursolMax"];
+			Object cursorNameListList = launcherOptionSound["_CursolNameList"];
 
 			// If this is a reload, do not update stuff we don't need to
 			if (s_newSoundOptionsIdx < 0)
@@ -180,10 +180,10 @@ void AudioMenuExtension::installHooks()
 					newCursorMaxList.set<std::int32_t>(i, cursorMax);
 				}
 
-				launcherOptionSound.set<Object>("NameList", newNameList);
-				launcherOptionSound.set<Object>("GuidList", newGuidList);
-				launcherOptionSound.set<Object>("_CursolIndex", newCursorIndexList);
-				launcherOptionSound.set<Object>("CursolMax", newCursorMaxList);
+				launcherOptionSound.set("NameList", newNameList);
+				launcherOptionSound.set("GuidList", newGuidList);
+				launcherOptionSound.set("_CursolIndex", newCursorIndexList);
+				launcherOptionSound.set("CursolMax", newCursorMaxList);
 			}
 
 			// Cursor name list needs to be rebuilt each time
@@ -199,7 +199,7 @@ void AudioMenuExtension::installHooks()
 
 					if (i < s_newSoundOptionsIdx)
 					{
-						cursorNameList = cursorNameListList.get<Object>(i);
+						cursorNameList = cursorNameListList[i];
 					}
 					else
 					{
@@ -220,15 +220,15 @@ void AudioMenuExtension::installHooks()
 						++menuItemIter;
 					}
 
-					newCursorNameListList.set<Object>(i, cursorNameList);
+					newCursorNameListList.set(i, cursorNameList);
 				}
 
-				launcherOptionSound.set<Object>("_CursolNameList", newCursorNameListList);
+				launcherOptionSound.set("_CursolNameList", newCursorNameListList);
 			}
 
 			// Show/hide the scrollbar
 			Object str_scrollBarPath = createString(L"/FSB_ref_Vertical_Button");
-			Object soundList = launcherOptionSound.get<Object>("_SoundList");
+			Object soundList = launcherOptionSound["_SoundList"];
 
 			// set soundList.BarPath
 			// This should be done before set_ItemCount
@@ -296,8 +296,8 @@ void AudioMenuExtension::installHooks()
 			Object launcherOptionSound = Object(argv[1]);
 
 			std::int32_t selectedIndex = launcherOptionSound.get<std::int32_t>("_SelectedIndex");
-			Object soundList = launcherOptionSound.get<Object>("_SoundList");
-			Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
+			Object soundList = launcherOptionSound["_SoundList"];
+			Object cursorIndexList = launcherOptionSound["_CursolIndex"];
 			std::int32_t cursorIndexListLength = cursorIndexList.get<std::int32_t>("Length");
 
 			// call launcherOptionSound.isUpdateList()
@@ -336,7 +336,7 @@ void AudioMenuExtension::installHooks()
 				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
 			}
 
-			Object cursorMaxList = launcherOptionSound.get<Object>("CursolMax");
+			Object cursorMaxList = launcherOptionSound["CursolMax"];
 			std::int32_t cursorIndex = cursorIndexList.get<std::int32_t>(selectedIndex);
 			std::int32_t cursorMax = cursorMaxList.get<std::int32_t>(selectedIndex);
 
@@ -360,7 +360,7 @@ void AudioMenuExtension::installHooks()
 				updateList(launcherOptionSound);
 
 				// Propagate settings
-				launcherOptionSound.call<void>("updateVolume");
+				launcherOptionSound.call("updateVolume");
 
 				std::int32_t bgmType = launcherOptionSound.call<std::int32_t>("convertCusrotIndexToBGMType");
 				Object launcher = getSingleton("app.Launcher");
@@ -387,8 +387,8 @@ void AudioMenuExtension::installHooks()
 					});
 				if (isInputDecide && menuItem.onEnter())
 				{
-					Object soundMilkyManager = getType("app.sound.SoundMilkyManager").get<Object>("_Instance");
-					soundMilkyManager.call<void>(
+					Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
+					soundMilkyManager.call(
 						"playSeById(System.UInt16)",
 						{
 							(void *)(intptr_t)app::sound::SoundMilkyDefine::SeID::LAUNCHER_OK,
@@ -412,9 +412,9 @@ void AudioMenuExtension::installHooks()
 
 			Object guiLauncherOption = Object(argv[1]);
 
-			Object menuTbl = guiLauncherOption.get<Object>("_MenuTbl");
-			Object launcherOptionSound = menuTbl.get<Object>(std::to_underlying(app::GUILauncherOption::MENU_TYPE::SOUND));
-			Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
+			Object menuTbl = guiLauncherOption["_MenuTbl"];
+			Object launcherOptionSound = menuTbl[app::GUILauncherOption::MENU_TYPE::SOUND];
+			Object cursorIndexList = launcherOptionSound["_CursolIndex"];
 			std::int32_t cursorIndexListLength = cursorIndexList.get<std::int32_t>("Length");
 
 			auto menuItemGen = getAllNewMenuItems();
@@ -443,7 +443,7 @@ void AudioMenuExtension::installHooks()
 			assert(s_newSoundOptionsIdx >= 0);
 
 			Object launcherOptionSound = Object(argv[1]);
-			Object cursorIndexList = launcherOptionSound.get<Object>("_CursolIndex");
+			Object cursorIndexList = launcherOptionSound["_CursolIndex"];
 			std::int32_t cursorIndexListLength = cursorIndexList.get<std::int32_t>("Length");
 
 			auto menuItemGen = getAllNewMenuItems();

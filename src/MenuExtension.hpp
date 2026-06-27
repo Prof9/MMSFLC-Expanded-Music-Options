@@ -13,7 +13,7 @@ class MenuExtension
 public:
 	/// @brief Create new menu extension.
 	/// @param newMenuItems New menu items which are part of this extension.
-	MenuExtension(std::span<std::unique_ptr<MenuItem>> newMenuItems)
+	MenuExtension(std::span<std::shared_ptr<MenuItem>> newMenuItems)
 	{
 		m_newMenuItems.insert(
 			m_newMenuItems.end(),
@@ -42,7 +42,7 @@ public:
 
 protected:
 	/// @brief  New menu items added by this menu extension instance.
-	std::vector<std::unique_ptr<MenuItem>> m_newMenuItems;
+	std::vector<std::shared_ptr<MenuItem>> m_newMenuItems;
 
 	/// @brief  Get all new menu items across all menu extension instances of
 	///         this type.
@@ -51,7 +51,7 @@ protected:
 	{
 		for (MenuExtension const *instance : s_instances)
 		{
-			for (std::unique_ptr<MenuItem> const &menuItem : instance->m_newMenuItems)
+			for (std::shared_ptr<MenuItem> const &menuItem : instance->m_newMenuItems)
 			{
 				co_yield *menuItem;
 			}

@@ -19,6 +19,8 @@ public:
 	bool onEnter();
 	bool onUpdate();
 
+	REFrameworkHelper::Object m_favoritesList;
+
 protected:
 	static void installHooks();
 	static void uninstallHooks();
@@ -28,7 +30,6 @@ protected:
 private:
 	// Instance state
 	State m_state = State::Idle;
-	REFrameworkHelper::Object m_favoritesList;
 	std::size_t m_numNewAlbumFlags;
 
 	// Static state

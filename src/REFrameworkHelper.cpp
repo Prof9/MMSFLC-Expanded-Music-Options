@@ -210,7 +210,7 @@ T Object::callInternal(std::string_view funcName, T reframework::InvokeRet::*inv
 /// @param isValueType true iff this type is a value type
 /// @return Value of field
 template <typename T>
-T Type::get(std::string_view fieldName, bool isValueType)
+T Type::get(std::string_view fieldName, bool isValueType) const
 {
 	assert(this->m_type != nullptr);
 

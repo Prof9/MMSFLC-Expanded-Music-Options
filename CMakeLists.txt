@@ -8,7 +8,7 @@ project(
 	LANGUAGES CXX
 )
 set(CACHE{GAME_INSTALL_EXE} VALUE "MEGAMAN_STARFORCE_Legacy_Collection.exe")
-set(CACHE{GAME_INSTALL_DIR_NAME} VALUE "MegaMan StarForce LegacyCollection")
+set(CACHE{GAME_INSTALL_DIR_NAME} VALUE "MegaMan StarForce LegacyCollection 1.0.2")
 
 cmake_path(SET STEAM_LIBRARY_DIR "C:\\Program Files (x86)\\Steam\\")
 cmake_path(SET GAME_INSTALL_DIR "${STEAM_LIBRARY_DIR}/steamapps/common/${GAME_INSTALL_DIR_NAME}/")
