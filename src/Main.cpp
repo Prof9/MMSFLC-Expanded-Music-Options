@@ -119,12 +119,15 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
         },
         via::Language::English);
 
+    CustomPlaylistMenuItem::setOriginalArrangedPlaylistFileName("reframework\\data\\ExpandedMusicOptions\\playlist_original_arranged.bin");
     static std::shared_ptr<CustomPlaylistMenuItem> customPlaylistWaveWorld = std::make_unique<CustomPlaylistMenuItem>(
+        "reframework\\data\\ExpandedMusicOptions\\playlist_wave_world.bin",
         L"9d3c9c45-c53f-42dd-b2fc-1beebdf63a28"_guid,
         L"45cf3ad4-b931-4885-a4fe-8e26be1b1475"_guid,
         &NEW_BGM_SELECTION_OPTIONS,
         &_bgmFieldSetting);
     static std::shared_ptr<CustomPlaylistMenuItem> customPlaylistVirusBattle = std::make_unique<CustomPlaylistMenuItem>(
+        "reframework\\data\\ExpandedMusicOptions\\playlist_virus_battle.bin",
         L"ad4fcc9e-eccf-4e64-8afb-2286132ca680"_guid,
         L"295acd67-b442-4328-af81-505199b3194a"_guid,
         &NEW_BGM_SELECTION_OPTIONS,
@@ -168,7 +171,7 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
 
                 Object saveData = getSingleton("app.Launcher")["_saveData"];
                 Object favoriteMusicList = saveData["favoriteMusicList"];
-                saveData["favoriteMusicList"] = customPlaylistVirusBattle->m_favoritesList;
+                saveData["favoriteMusicList"] = customPlaylistVirusBattle->getCustomPlaylist();
 
                 isRecursiveCall = true;
                 sound.call(
@@ -190,6 +193,29 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
                 trigger == 0xBDAE2406    // SF3 - Wave World (SF3 Version)
             )
             {
+                // Leverage existing function to select random song from playlist
+                std::uint8_t bgmPlayType = sound.get<std::uint8_t>("_CurrentBgmPlayType");
+                sound.get<std::uint8_t>("_CurrentBgmPlayType");
+                sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayTypeFavorite);
+
+                Object saveData = getSingleton("app.Launcher")["_saveData"];
+                Object favoriteMusicList = saveData["favoriteMusicList"];
+                saveData["favoriteMusicList"] = customPlaylistWaveWorld->getCustomPlaylist();
+
+                isRecursiveCall = true;
+                sound.call(
+                    "corePlayBgm",
+                    {
+                        (void *)(intptr_t)trigger,
+                        origId2TriggerId,
+                        (void *)(intptr_t)playerId,
+                    });
+                isRecursiveCall = false;
+
+                sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayType);
+                saveData["favoriteMusicList"] = favoriteMusicList;
+
+                return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
             }
 
             Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
