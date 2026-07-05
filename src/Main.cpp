@@ -140,6 +140,9 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
     };
     new AudioMenuExtension(newMenuItems);
 
+    static std::vector<bool> s_isPlayerArranged;
+    static Object s_currentSound;
+
     // Override corePlayBgm
     hook(
         "app.cSound_Base.corePlayBgm",
@@ -246,6 +249,62 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
             //{
             //    return REFRAMEWORK_HOOK_CALL_ORIGINAL;
             //}
+
+            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+        },
+        nullptr);
+
+    hook(
+        "app.cSound_Base.baseInit",
+        [](int argc, void **argv, auto...)
+        {
+            s_currentSound = Object(argv[1]);
+            s_isPlayerArranged.resize(0);
+            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+        },
+        nullptr);
+
+    hook(
+        "app.cSound_Base.baseTerminate",
+        nullptr,
+        [](auto...)
+        {
+            s_currentSound = nullptr;
+            s_isPlayerArranged.resize(0);
+        });
+
+    static bool s_disableEnableBgmArrangeHook = false;
+    hook(
+        "app.sound.SoundMilkyManager.set_EnableBgmArrange(System.Boolean)",
+        [](int argc, void **argv, auto...)
+        {
+            if (s_currentSound != nullptr && !s_disableEnableBgmArrangeHook)
+            {
+                bool isArranged = (bool)(intptr_t)argv[2];
+
+                std::uint32_t playerId = s_currentSound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
+                if (playerId >= s_isPlayerArranged.size())
+                {
+                    s_isPlayerArranged.resize(playerId + 1);
+                }
+                s_isPlayerArranged[playerId] = isArranged;
+            }
+
+            return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+        },
+        nullptr);
+
+    hook(
+        "app.cSound_Base.updateBgmPlayType",
+        [](int argc, void **argv, auto...)
+        {
+            Object sound = Object(argv[1]);
+            std::uint32_t playerId = sound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
+            bool isArranged = playerId < s_isPlayerArranged.size() ? s_isPlayerArranged[playerId] : false;
+
+            s_disableEnableBgmArrangeHook = true;
+            sound["_Manager"].call("set_EnableBgmArrange", {(void *)(intptr_t)isArranged});
+            s_disableEnableBgmArrangeHook = false;
 
             return REFRAMEWORK_HOOK_CALL_ORIGINAL;
         },

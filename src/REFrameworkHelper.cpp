@@ -239,7 +239,8 @@ HookRef REFrameworkHelper::hook(std::string_view fullName, REFPreHookFn preFn, R
 	auto &api = reframework::API::get();
 	auto tdb = api->tdb();
 
-	size_t dotPos = fullName.find_last_of('.');
+	size_t parenPos = fullName.find_first_of('(');
+	size_t dotPos = fullName.find_last_of('.', parenPos);
 	assert(dotPos != std::string::npos);
 
 	// Workaround for bug in RETypeDB::find_type() where it uses unbounded .data() on the input
