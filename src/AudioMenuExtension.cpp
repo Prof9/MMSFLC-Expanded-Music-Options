@@ -168,7 +168,7 @@ void AudioMenuExtension::installHooks()
 
 						nameGuid = menuItem.m_nameGuid;
 						descriptionGuid = menuItem.m_descriptionGuid;
-						cursorMax = menuItem.m_valueNames->size();
+						cursorMax = menuItem.m_options->size();
 						cursorIdx = menuItem.getValue();
 
 						++menuItemIter;
@@ -207,13 +207,13 @@ void AudioMenuExtension::installHooks()
 						MenuItem &menuItem = *menuItemIter;
 
 						// build new cursor name list
-						cursorNameList = createArray("System.Guid", menuItem.m_valueNames->size());
+						cursorNameList = createArray("System.Guid", menuItem.m_options->size());
 
 						// fill new cursor name list
-						for (int j = 0; j < menuItem.m_valueNames->size(); j++)
+						for (int j = 0; j < menuItem.m_options->size(); j++)
 						{
 							// set cursorNameList[j]
-							Guid cursorName = (*menuItem.m_valueNames)[j];
+							Guid cursorName = (*menuItem.m_options)[j].m_nameGuid;
 							cursorNameList.set<Guid>(j, cursorName);
 						}
 
@@ -340,6 +340,19 @@ void AudioMenuExtension::installHooks()
 			std::int32_t cursorIndex = cursorIndexList.get<std::int32_t>(selectedIndex);
 			std::int32_t cursorMax = cursorMaxList.get<std::int32_t>(selectedIndex);
 
+			// Get menu item
+			MenuItem *menuItem = nullptr;
+			if (selectedIndex >= s_newSoundOptionsIdx)
+			{
+				auto menuItemGen = getAllNewMenuItems();
+				auto menuItemIter = menuItemGen.begin();
+				std::ranges::advance(menuItemIter, selectedIndex - s_newSoundOptionsIdx);
+				if (menuItemIter != menuItemGen.end())
+				{
+					menuItem = &*menuItemIter;
+				}
+			}
+
 			// call menu.isUpdateSelectedItem()
 			// returns true if different value chosen for selected item and updates cursorIndex
 			// The game can directly pass &cursorIndexList[selectedIndex], but we can't,
@@ -356,6 +369,24 @@ void AudioMenuExtension::installHooks()
 			{
 				cursorIndexList.set<std::int32_t>(selectedIndex, cursorIndex);
 
+				if (menuItem != nullptr)
+				{
+					std::int32_t value = cursorIndex;
+					if (menuItem->m_options != nullptr)
+					{
+						MenuItem::Option option = (*menuItem->m_options)[cursorIndex];
+						value = option.m_value;
+
+						// Show description for this value if it has one
+						if (option.m_descriptionGuid.has_value())
+						{
+							Guid guid = option.m_descriptionGuid.value();
+							launcherOptionSound.call("setGuidMessage(System.Guid)", {&guid});
+						}
+					}
+					menuItem->setValue(value);
+				}
+
 				// The game only updates the selected item, but this is probably fine too
 				updateList(launcherOptionSound);
 
@@ -369,14 +400,8 @@ void AudioMenuExtension::installHooks()
 				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
 			}
 
-			if (selectedIndex >= s_newSoundOptionsIdx)
+			if (menuItem != nullptr)
 			{
-				// Get menu item
-				auto menuItemGen = getAllNewMenuItems();
-				auto menuItemIter = menuItemGen.begin();
-				std::ranges::advance(menuItemIter, selectedIndex - s_newSoundOptionsIdx);
-				MenuItem &menuItem = *menuItemIter;
-
 				// call app.GameInputManager.isLauncherInputSuccess()
 				// returns true if key is pressed on item
 				Object gameInputManager = getSingleton("app.GameInputManager");
@@ -385,7 +410,7 @@ void AudioMenuExtension::installHooks()
 					{
 						(void *)(intptr_t)app::LauncherInputKey::KEY::DECIDE,
 					});
-				if (isInputDecide && menuItem.onEnter())
+				if (isInputDecide && menuItem->onEnter())
 				{
 					Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
 					soundMilkyManager.call(
@@ -403,32 +428,10 @@ void AudioMenuExtension::installHooks()
 		nullptr));
 
 	// Hook method which is called when user exits the Settings menu
-	// Here we retrieve the new setting values from the menu elements
 	s_hooks.emplace_back(hook(
 		"app.GUILauncherOption.onDestroy()",
 		[](int argc, void **argv, auto...)
 		{
-			assert(s_newSoundOptionsIdx >= 0);
-
-			Object guiLauncherOption = Object(argv[1]);
-
-			Object menuTbl = guiLauncherOption["_MenuTbl"];
-			Object launcherOptionSound = menuTbl[app::GUILauncherOption::MENU_TYPE::SOUND];
-			Object cursorIndexList = launcherOptionSound["_CursolIndex"];
-			std::int32_t cursorIndexListLength = cursorIndexList.get<std::int32_t>("Length");
-
-			auto menuItemGen = getAllNewMenuItems();
-			auto menuItemIter = menuItemGen.begin();
-			for (std::size_t i = s_newSoundOptionsIdx; i < cursorIndexListLength; i++)
-			{
-				// get new item
-				MenuItem &menuItem = *menuItemIter;
-
-				menuItem.setValue(cursorIndexList.get<std::int32_t>(i));
-
-				++menuItemIter;
-			}
-
 			s_newSoundOptionsIdx = -1;
 
 			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
@@ -448,7 +451,7 @@ void AudioMenuExtension::installHooks()
 
 			auto menuItemGen = getAllNewMenuItems();
 			auto menuItemIter = menuItemGen.begin();
-			for (std::size_t i = s_newSoundOptionsIdx; i < cursorIndexListLength; i++)
+			for (std::size_t i = s_newSoundOptionsIdx; menuItemIter != menuItemGen.end(); ++i)
 			{
 				// get new item
 				MenuItem &menuItem = *menuItemIter;

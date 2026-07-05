@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cstdint>
 
 #include "MenuItem.hpp"
@@ -5,19 +6,21 @@
 std::int32_t MenuItem::getValue() const
 {
 	std::int32_t value = *m_value;
-	if (value < 0 || value >= m_valueNames->size())
+	if (m_options->end() == std::find_if(m_options->begin(), m_options->end(), [value](MenuItem::Option option)
+										 { return option.m_value == value; }))
 	{
 		value = m_defaultValue;
-	}
+	};
 	return value;
 }
 
 void MenuItem::setValue(std::int32_t value) const
 {
-	if (value < 0 || value >= m_valueNames->size())
+	if (m_options->end() == std::find_if(m_options->begin(), m_options->end(), [value](MenuItem::Option option)
+										 { return option.m_value == value; }))
 	{
 		value = m_defaultValue;
-	}
+	};
 	*m_value = value;
 }
 

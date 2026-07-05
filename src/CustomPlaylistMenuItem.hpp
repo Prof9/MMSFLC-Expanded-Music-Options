@@ -12,8 +12,23 @@ struct CustomPlaylistMenuItem : MenuItem
 		InMusicPlayer,
 	};
 
+	enum struct Option : std::int32_t
+	{
+		NoChange,
+		MusicOff,
+		AlwaysOriginal,
+		AlwaysArranged,
+		PreferMix,
+		Playlist,
+		Favorites,
+		Field,
+		FieldOriginal,
+		FieldArranged,
+		Battle,
+	};
+
 public:
-	CustomPlaylistMenuItem(const std::filesystem::path &playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<Guid> *valueNames, std::int32_t *valuePtr, std::int32_t defaultValue = 0);
+	CustomPlaylistMenuItem(const std::filesystem::path &playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<MenuItem::Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue = 0);
 	virtual ~CustomPlaylistMenuItem();
 
 	bool onEnter();
@@ -22,14 +37,14 @@ public:
 	REFrameworkHelper::Object getCustomPlaylist() const;
 	void setCustomPlaylist(REFrameworkHelper::Object playlist);
 
-	static REFrameworkHelper::Object getOriginalArrangedPlaylist();
-	static void setOriginalArrangedPlaylist(REFrameworkHelper::Object playlist);
+	static REFrameworkHelper::Object getPreferMixPlaylist();
+	static void setPreferMixPlaylist(REFrameworkHelper::Object playlist);
 
 	static REFrameworkHelper::Object loadFavoritesList(const std::filesystem::path &fileName);
 	static bool saveFavoritesList(const std::filesystem::path &fileName, REFrameworkHelper::Object favoritesList);
 
-	static const std::filesystem::path &getOriginalArrangedPlaylistFileName();
-	static void setOriginalArrangedPlaylistFileName(const std::filesystem::path &fileName);
+	static const std::filesystem::path &getPreferMixPlaylistFileName();
+	static void setPreferMixPlaylistFileName(const std::filesystem::path &fileName);
 
 protected:
 	static void installHooks();
@@ -48,8 +63,8 @@ private:
 	// Static state
 	static inline CustomPlaylistMenuItem *s_activeInstance;
 
-	static inline std::filesystem::path s_originalArrangedPlaylistFileName;
-	static inline REFrameworkHelper::Object s_originalArrangedPlaylist;
+	static inline std::filesystem::path s_PreferMixPlaylistFileName;
+	static inline REFrameworkHelper::Object s_PreferMixPlaylist;
 
 	// Hooks
 	static inline std::vector<REFrameworkHelper::HookRef> s_hooks;

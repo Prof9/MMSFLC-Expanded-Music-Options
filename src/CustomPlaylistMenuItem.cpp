@@ -29,23 +29,23 @@ void CustomPlaylistMenuItem::setCustomPlaylist(Object playlist)
 	}
 }
 
-Object CustomPlaylistMenuItem::getOriginalArrangedPlaylist()
+Object CustomPlaylistMenuItem::getPreferMixPlaylist()
 {
-	return s_originalArrangedPlaylist;
+	return s_PreferMixPlaylist;
 }
 
-void CustomPlaylistMenuItem::setOriginalArrangedPlaylist(Object playlist)
+void CustomPlaylistMenuItem::setPreferMixPlaylist(Object playlist)
 {
-	if (s_originalArrangedPlaylist)
+	if (s_PreferMixPlaylist)
 	{
-		s_originalArrangedPlaylist.m_object->release();
+		s_PreferMixPlaylist.m_object->release();
 	}
 
-	s_originalArrangedPlaylist = playlist;
+	s_PreferMixPlaylist = playlist;
 
-	if (s_originalArrangedPlaylist)
+	if (s_PreferMixPlaylist)
 	{
-		s_originalArrangedPlaylist.m_object->add_ref();
+		s_PreferMixPlaylist.m_object->add_ref();
 	}
 }
 
@@ -156,22 +156,22 @@ bool CustomPlaylistMenuItem::saveFavoritesList(const std::filesystem::path &file
 	return true;
 }
 
-const std::filesystem::path &CustomPlaylistMenuItem::getOriginalArrangedPlaylistFileName()
+const std::filesystem::path &CustomPlaylistMenuItem::getPreferMixPlaylistFileName()
 {
-	return s_originalArrangedPlaylistFileName;
+	return s_PreferMixPlaylistFileName;
 }
-void CustomPlaylistMenuItem::setOriginalArrangedPlaylistFileName(const std::filesystem::path &fileName)
+void CustomPlaylistMenuItem::setPreferMixPlaylistFileName(const std::filesystem::path &fileName)
 {
-	s_originalArrangedPlaylistFileName = fileName;
+	s_PreferMixPlaylistFileName = fileName;
 }
 
-CustomPlaylistMenuItem::CustomPlaylistMenuItem(const std::filesystem::path &playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<Guid> *valueNames, std::int32_t *valuePtr, std::int32_t defaultValue)
-	: MenuItem::MenuItem(nameGuid, descriptionGuid, valueNames, valuePtr, defaultValue), m_customPlaylistFileName(playlistFileName)
+CustomPlaylistMenuItem::CustomPlaylistMenuItem(const std::filesystem::path &playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<MenuItem::Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue)
+	: MenuItem::MenuItem(nameGuid, descriptionGuid, options, valuePtr, defaultValue), m_customPlaylistFileName(playlistFileName)
 {
 	// Load original/arranged playlist if this is the first instance
-	if (!s_originalArrangedPlaylist)
+	if (!s_PreferMixPlaylist)
 	{
-		setOriginalArrangedPlaylist(loadFavoritesList(s_originalArrangedPlaylistFileName));
+		setPreferMixPlaylist(loadFavoritesList(s_PreferMixPlaylistFileName));
 	}
 
 	// Load custom playlist
@@ -187,6 +187,17 @@ bool CustomPlaylistMenuItem::onEnter()
 {
 	if (m_state != State::Idle)
 	{
+		return false;
+	}
+
+	// Check if the current value is a playlist that can be edited
+	switch (getValue())
+	{
+	case std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix):
+	case std::to_underlying(CustomPlaylistMenuItem::Option::Playlist):
+	case std::to_underlying(CustomPlaylistMenuItem::Option::Favorites):
+		break;
+	default:
 		return false;
 	}
 
@@ -216,7 +227,6 @@ bool CustomPlaylistMenuItem::onUpdate()
 		if (isFadeInAnimEnd)
 		{
 			// set DrawSelf = false
-
 			launcher["guiBehaviors"][app::Launcher::LauncherGUIId::Option]["GameObject"].set<bool>("DrawSelf", false);
 
 			s_activeInstance = this;
@@ -252,7 +262,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 
 			// save playlists
 			saveFavoritesList(s_activeInstance->m_customPlaylistFileName, m_customPlaylist);
-			saveFavoritesList(s_originalArrangedPlaylistFileName, s_originalArrangedPlaylist);
+			saveFavoritesList(s_PreferMixPlaylistFileName, s_PreferMixPlaylist);
 
 			s_activeInstance = nullptr;
 			m_state = State::Idle;
@@ -283,7 +293,14 @@ void CustomPlaylistMenuItem::installHooks()
 		[](auto...)
 		{
 			// Set this instance's favorites list
-			launcherMusicPlayer.set("favoriteMusicList", s_activeInstance->m_customPlaylist);
+			if (s_activeInstance->getValue() == std::to_underlying(CustomPlaylistMenuItem::Option::Playlist))
+			{
+				launcherMusicPlayer.set("favoriteMusicList", s_activeInstance->m_customPlaylist);
+			}
+			else if (s_activeInstance->getValue() == std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix))
+			{
+				launcherMusicPlayer.set("favoriteMusicList", s_PreferMixPlaylist);
+			}
 		}));
 
 	// Hook method which saves launcher data to avoid saving
@@ -291,16 +308,21 @@ void CustomPlaylistMenuItem::installHooks()
 		"app.SaveDataManager.requestSaveUserData_Launcher",
 		[](auto...)
 		{
-			// If number of new albm flags changed, do a save
+			// If we are editing the actual favorites list, do a save
+			if (s_activeInstance->getValue() == std::to_underlying(CustomPlaylistMenuItem::Option::Favorites))
+			{
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+
+			// If number of new album flags changed, do a save
 			// Otherwise we don't need to save
 			if (s_activeInstance->m_numNewAlbumFlags != countNewAlbumFlags())
 			{
 				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 			}
-			else
-			{
-				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
-			}
+
+			// Otherwise we don't need to save
+			return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
 		},
 		nullptr));
 }
