@@ -546,8 +546,202 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
     };
     new AudioMenuExtension(newMenuItems);
 
+    static std::vector<std::pair<std::vector<std::uint32_t>, std::shared_ptr<MenuItem>>> s_triggerId2SettingList = {
+        {{
+             0xFCF8ECEB, // SF1: Hometown (SF1 Version)
+             0xE994DBDE, // SF1: Cheerful Indoors
+             0x735B58D3, // SF1: Science
+             0x35662562, // SF1: Homeroom
+             0xCCF80A84, // SF1: Time Square
+             0x5054502B, // SF1: Dream Island
+             0x55A434B4, // SF1: Space Station
+             0x2DB7EBDD, // SF1: Zero Gravity
+             0x851924DA, // SF2: Hometown (SF2 Version)
+             0x412B3875, // SF2: Cheerful Indoors
+             0x814B669D, // SF2: Grizzly Peak
+             0xAEF78761, // SF2: Loch Mess
+             0x4458D85B, // SF2: Wilshire Hills
+             0x8B492BB6, // SF2: Whazzap
+             0x81BF1D76, // SF3: Hometown (SF3 Version)
+             0x295EEC52, // SF3: Cheerful Indoors
+             0x836FCD1E, // SF3: Smile: Spica Mall
+             0xC03EB07B, // SF3: WBG Studios
+             0xDFD1059F, // SF3: Heloha Alohaha!
+             0x3CC9753C, // SF3: Protectors of Peace
+             0x097909CB, // SF3: Hideout
+             0x3858C74A, // SF3: Echo Elementary
+             0x3829A658, // SF3: Let's Go Shopping
+         },
+         s_menuItemRealWorldBgm},
+        {{
+             0x59AF1699, // SF1: Wave World (SF1 Version)
+             0x296E097F, // SF2: Wave World (SF2 Version)
+             0xBDAE2406, // SF3: Wave World (SF3 Version)
+         },
+         s_menuItemWaveRoadBgm},
+        {{
+             0x7C2959CC, // SF1: Cyber World (SF1 Version)
+             0x70B3B9F9, // SF2: Wave Square
+             0x590C820E, // SF3: Cyber World (SF3 Version)
+             0xD2E1A491, // SF3: Noise World
+         },
+         s_menuItemWaveSpaceBgm},
+        {{
+             0x286104C8, // SF1: Rampaging Truck!
+             0xD8A9FB8F, // SF1: Rocket Shooter
+             0x62A67D21, // SF1: Study Time!
+             0xF4569294, // SF1: Anaconda
+             0x3A401CA7, // SF1: Dust Crash
+             0x9B5A8F36, // SF1: Final Battlefield
+             0xA0FB31B6, // SF1: Space!?
+             0x33950EBE, // SF2: Ghost Mayhem
+             0xF026001A, // SF2: Snowstorm
+             0x48C05D86, // SF2: Lake Exploration
+             0x23D9B5B8, // SF2: Ancient Omen
+             0x6B2F9A95, // SF2: Bermuda Maze
+             0x8E438530, // SF2: Mu
+             0x82C99A2B, // SF2: Requiem of Ruination
+             0xC33A51ED, // SF2: Sky Wave
+             0x052ABAC7, // SF3: Astro Wave
+             0x1173E658, // SF3: Noise Wave
+             0x323FB3B9, // SF3: Bonds Beyond the Stars
+             0xE6CBFBC4, // SF3: Rocket Emergency!
+             0x2902BD52, // SF3: Live Stage
+             0x2E098CC4, // SF3: Rocked and Rolled
+             0x33FE775F, // SF3: Crimson Machine
+             0x33EE8743, // SF3: Memory Splinter: Meteor Server
+         },
+         s_menuItemDungeonBgm},
+        {{
+             0xE98A8F76, // SF1: Ride On (SF1 Version)
+             0xBA31B7A6, // SF2: Ride On (SF2 Version)
+             0x9C314038, // SF2: Road to Victory (SF2 Version)
+             0xDAE5756C, // SF3: Wave Battle (SF3 Version)
+             0xF75D6831, // SF3: Road to Victory (SF3 Version)
+         },
+         s_menuItemNormalBattleBgm},
+        {{
+             0x31C4F5F1, // SF1: Wave Battle (SF1 Version)
+             0x6AF4E020, // SF2: Wave Battle (SF2 Version)
+             0x2C664C1B, // SF3: Ride On (SF3 Version)
+         },
+         s_menuItemBossBattleBgm},
+        {{
+             0x6046E56E, // SF1: Last Battle (SF1 Version)
+             0x11DFAE73, // SF2: Battle Against the Divine
+             0x3FDCD876, // SF3: Last Battle (SF3 Version)
+         },
+         s_menuItemLastBattleBgm},
+        {{
+             0xE007FD11, // SF1: Winner! (SF1 Version)
+             0xA7A6A9EC, // SF2: Winner! (SF1 Version)
+             0x92B0B3FA, // SF3: Winner! (SF3 Version)
+         },
+         s_menuItemWinnerBgm},
+        {{
+             0x0DB8091D, // SF1: Loser...
+             0x4360DD04, // SF2: Loser...
+             0x6ACC1BA0, // SF3: Loser...
+         },
+         s_menuItemLoserBgm},
+        {{
+             0x3C2A3E79, // SF1: We Have a Problem! (SF1 Version)
+             0x6CE164B2, // SF2: We Have a Problem! (SF2 Version)
+             0x58890B9D, // SF3: We Have a Problem! (SF3 Version)
+         },
+         s_menuItemIncidentBgmRealWorld},
+        {{
+             0x5B5B6398, // SF1: Warning Bell! (SF1 Version)
+             0x720E5FFA, // SF2: Warning Bell! (SF2 Version)
+             0x8ECE5019, // SF3: We Have a Problem! - Wave World (SF3 Version)
+         },
+         s_menuItemIncidentBgmWaveWorld},
+        {{
+             0xB73EA2B6, // SF1: FM-ian Theme
+             0x6DFDA90A, // SF1: Cheerful Company
+             0xEC4B9853, // SF1: Tension (SF1 Version)
+             0x1895189D, // SF1: Moving Scene
+             0xE041C235, // SF1: Agonizing Wish
+             0x8489A114, // SF1: (transformation)
+             0xA5C48DF3, // SF1: Winner! - Short (SF1 Version)
+             0xD19E7AF5, // SF1: Game Over
+             0x11DA3ED0, // SF1: Battle Prelude (SF1 Version)
+             0x522A7C35, // SF1: Loneliness
+             0x79620121, // SF1: Sweet Frequency
+             0xAAF919F9, // SF1: Shooting Star (SF1 Version)
+             0x9CB5A790, // SF1: A Place to Return
+             0x326F03DC, // SF2: Vega's Theme
+             0x4C86D9BA, // SF2: Anthem of the Solitary
+             0xBB2D3340, // SF2: My Friends
+             0xC1004ADD, // SF2: Cheerful Company
+             0x305D0B92, // SF2: Ominous Atmosphere
+             0xB166E74D, // SF2: Moving Scene
+             0xDD92FCFB, // SF2: Sentimental (SF2 Version)
+             0x0C4E4C2D, // SF2: (transformation)
+             0x24628ADA, // SF2: Winner! - Short (SF1 Version)
+             0x93D25171, // SF2: Game Over
+             0x640BD76E, // SF2: Battle Prelude (SF2 Version)
+             0xC2ABB29D, // SF2: Loneliness
+             0x73B41024, // SF2: Sky-Hi Coliseum
+             0xBE23BF31, // SF2: Network
+             0x2B0C61C5, // SF2: Eternal Memories
+             0x5375B7AF, // SF2: Shooting Star (SF2 Version)
+             0xA2DC17E9, // SF3: Satella Police, Move Out!
+             0xA86FBCFA, // SF3: Shoot and Slash!
+             0xB49CA84A, // SF3: Dealer's Theme
+             0x0FE9F0A4, // SF3: Jack and Queen
+             0xE1AD6054, // SF3: Anthem of the Solitary
+             0xCCAFBBBC, // SF3: Battle Prelude (SF3 Version)
+             0x5448F0F6, // SF3: Cheerful Company
+             0xA98540F8, // SF3: My Friends
+             0xB8F8A027, // SF3: Tension (SF3 Version)
+             0x26957CE4, // SF3: Moving Scene
+             0xA90C5B1F, // SF3: Sentimental (SF3 Version)
+             0x29E0CC15, // SF3: Loneliness
+             0xF37BEB7B, // SF3: Purpose Achieved!
+             0xBD886180, // SF3: Winner! - Short (SF3 Version)
+             0x5A095B0E, // SF3: Game Over
+             0x5F2D9E4C, // SF3: Warning Bell! (SF3 Version)
+             0x4E461546, // SF3: Noise Change
+             0x18CCC173, // SF3: Journey's End
+             0x6B21F3F1, // SF3: Chaotic Waves
+             0xF023375A, // SF3: Shooting Star (SF3 Version)
+             0xA3CD607A, // SF3: Shooting Star - Misora Live Version (SF3 Version)
+             0x0D65E048, // SF3: Shooting Star - Sonia Live Version (SF3 Version)
+         },
+         s_menuItemMiscellaneousBgm},
+        {{
+
+         },
+         s_menuItemMainMenuBgm},
+        {{
+             0x522A7C35, // SF1: Loneliness
+             0xC2ABB29D, // SF2: Loneliness
+             0x29E0CC15, // SF3: Loneliness
+         },
+         s_menuItemDlcBgmLoneliness},
+        {{
+             0x052ABAC7, // SF3: Astro Wave
+         },
+         s_menuItemDlcBgmAstroWave},
+        {{
+             0x4C86D9BA, // SF2: Anthem of the Solitary
+             0xE1AD6054, // SF3: Anthem of the Solitary
+         },
+         s_menuItemDlcBgmAnthemOfTheSolitary},
+        {{
+             0xE994DBDE, // SF1: Cheerful Indoors
+             0x412B3875, // SF2: Cheerful Indoors
+             0x295EEC52, // SF3: Cheerful Indoors
+         },
+         s_menuItemDlcBgmCheerfulIndoors},
+    };
+
     static std::vector<bool> s_isPlayerArranged;
     static Object s_currentSound;
+
+    static bool s_corePlayBgm_skip;
+    static void *s_corePlayBgm_retVal;
 
     // Override corePlayBgm
     hook(
@@ -563,30 +757,168 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
             //{
 
             Object sound = Object(argv[1]);
-            std::uint32_t trigger = (std::uint32_t)(intptr_t)argv[2];
+            std::uint32_t triggerId = (std::uint32_t)(intptr_t)argv[2];
             Object origId2TriggerId = Object(argv[3]);
             std::uint32_t playerId = (std::uint32_t)(intptr_t)argv[4];
 
-            std::uint8_t bgmPlayTypeFavorite = sound.get<std::uint8_t>("BgmPlayType_Favorite");
-
-            if (trigger == 0xE98A8F76 || // SF1 - Ride On (SF1 Version)
-                trigger == 0xBA31B7A6 || // SF2 - Ride On (SF2 Version)
-                trigger == 0xDAE5756C)   // SF3 - Wave Battle (SF3 Version)
+            auto selectNoChange = [&](std::shared_ptr<MenuItem> menuItem)
             {
+                return false;
+            };
+            auto selectMusicOff = [&](std::shared_ptr<MenuItem> menuItem)
+            {
+                std::uint32_t stopTriggerId = sound["_BgmSetting"].get<std::uint32_t>("DefaultStopTriggerId");
+
+                sound.call(
+                    "coreStopBgm",
+                    {
+                        (void *)(intptr_t)stopTriggerId,
+                        (void *)(intptr_t)playerId,
+                    });
+
+                s_corePlayBgm_retVal = 0;
+                s_corePlayBgm_skip = true;
+                return true;
+            };
+            auto selectAlwaysOriginal = [&](std::shared_ptr<MenuItem> menuItem)
+            {
+                Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
+                Object playerObject = playingBgmInfo["PlayerObject"];
+
+                sound["_Manager"].call("set_EnableBgmArrange", {(void *)(intptr_t)false});
+
+                sound["_ResidentContainer"].call(
+                    "trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
+                    {
+                        (void *)(intptr_t)triggerId,
+                        playerObject,
+                        nullptr,
+                        (void *)(intptr_t)0xFFFFFFFF,
+                        (void *)(intptr_t)false,
+                        (void *)(intptr_t)0,
+                        (void *)(intptr_t)0,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                    });
+                playingBgmInfo.set<bool>("IsPlayOriginalContainer", true);
+                playingBgmInfo.set<bool>("PlayType", 0);
+
+                s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
+                s_corePlayBgm_skip = true;
+                return true;
+            };
+            auto selectAlwaysArranged = [&](std::shared_ptr<MenuItem> menuItem)
+            {
+                Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
+                Object playerObject = playingBgmInfo["PlayerObject"];
+
+                sound["_Manager"].call("set_EnableBgmArrange", {(void *)(intptr_t)true});
+
+                sound["_ResidentContainer"].call(
+                    "trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
+                    {
+                        (void *)(intptr_t)triggerId,
+                        playerObject,
+                        nullptr,
+                        (void *)(intptr_t)0xFFFFFFFF,
+                        (void *)(intptr_t)false,
+                        (void *)(intptr_t)0,
+                        (void *)(intptr_t)0,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                    });
+                playingBgmInfo.set<bool>("IsPlayOriginalContainer", true);
+                playingBgmInfo.set<bool>("PlayType", 0);
+
+                s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
+                s_corePlayBgm_skip = true;
+                return true;
+            };
+            auto selectPreferMix = [&](std::shared_ptr<MenuItem> menuItem)
+            {
+                Object playlist = CustomPlaylistMenuItem::getPreferMixPlaylist();
+                Object musicPlayerBgmDefineList = getType("app.sound.SoundMilkyDefine")["MusicPlayerBgmDefineList"];
+                Object bgmSettingDataList = sound["_Manager"]["_BgmSettingDataList"];
+                Type musicPlayerBgmDefineType = getType("app.sound.SoundMilkyDefine.MusicPlayerBgmDefine");
+                reframework::API::Field *musicPlayerBgmDefineType_Series = musicPlayerBgmDefineType.m_type->find_field("Series");
+                reframework::API::Field *musicPlayerBgmDefineType_BgmSettingIndex = musicPlayerBgmDefineType.m_type->find_field("BgmSettingIndex");
+
+                /// TODO: Map repeat songs (e.g. Winner! in SF2) to their original trigger IDs
+
+                bool found = false;
+                bool isArranged = false;
+                std::int32_t playlistLen = playlist.get<std::int32_t>("Count");
+                for (std::int32_t i = 0; i < playlistLen; i++)
+                {
+                    Object favMusicInfo = playlist[i];
+                    std::uint16_t musicId = favMusicInfo.get<std::uint16_t>("musicId");
+
+                    std::uint64_t musicPlayerBgmDefineRaw = musicPlayerBgmDefineList.get<std::uint64_t>(musicId);
+                    std::uint8_t series = *(std::uint8_t *)musicPlayerBgmDefineType_Series->get_data_raw(&musicPlayerBgmDefineRaw, true);
+                    std::uint8_t bgmSettingIndex = *(std::uint8_t *)musicPlayerBgmDefineType_BgmSettingIndex->get_data_raw(&musicPlayerBgmDefineRaw, true);
+
+                    std::uint32_t playerTriggerId = bgmSettingDataList[series]["BgmId2TriggerIdList"][bgmSettingIndex].get<std::uint32_t>("PlayTriggerId");
+
+                    if (triggerId == playerTriggerId)
+                    {
+                        found = true;
+                        isArranged = favMusicInfo.get<bool>("isArrange");
+                    }
+                }
+
+                Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
+                Object playerObject = playingBgmInfo["PlayerObject"];
+
+                if (!found)
+                {
+                    isArranged = sound.get<std::uint8_t>("_CurrentBgmPlayType") == getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Arrange");
+                }
+                sound["_Manager"].call("set_EnableBgmArrange", {(void *)(intptr_t)isArranged});
+
+                sound["_ResidentContainer"].call(
+                    "trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
+                    {
+                        (void *)(intptr_t)triggerId,
+                        playerObject,
+                        nullptr,
+                        (void *)(intptr_t)0xFFFFFFFF,
+                        (void *)(intptr_t)false,
+                        (void *)(intptr_t)0,
+                        (void *)(intptr_t)0,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                        nullptr,
+                    });
+                playingBgmInfo.set<bool>("IsPlayOriginalContainer", true);
+                playingBgmInfo.set<bool>("PlayType", 0);
+
+                s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
+                s_corePlayBgm_skip = true;
+                return true;
+            };
+            auto selectPlaylist = [&](std::shared_ptr<MenuItem> menuItem)
+            {
+                std::shared_ptr<CustomPlaylistMenuItem> playlistMenuItem = std::dynamic_pointer_cast<CustomPlaylistMenuItem>(menuItem);
+                std::uint8_t bgmPlayTypeFavorite = sound.get<std::uint8_t>("BgmPlayType_Favorite");
+
                 // Leverage existing function to select random song from playlist
                 std::uint8_t bgmPlayType = sound.get<std::uint8_t>("_CurrentBgmPlayType");
-                sound.get<std::uint8_t>("_CurrentBgmPlayType");
                 sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayTypeFavorite);
 
                 Object saveData = getSingleton("app.Launcher")["_saveData"];
                 Object favoriteMusicList = saveData["favoriteMusicList"];
-                saveData["favoriteMusicList"] = s_menuItemNormalBattleBgm->getCustomPlaylist();
+                saveData["favoriteMusicList"] = playlistMenuItem->getCustomPlaylist();
 
                 isRecursiveCall = true;
                 sound.call(
                     "corePlayBgm",
                     {
-                        (void *)(intptr_t)trigger,
+                        (void *)(intptr_t)triggerId,
                         origId2TriggerId,
                         (void *)(intptr_t)playerId,
                     });
@@ -595,36 +927,46 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
                 sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayType);
                 saveData["favoriteMusicList"] = favoriteMusicList;
 
-                return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
-            }
-            if (trigger == 0x59AF1699 || // SF1 - Wave World (SF1 Version)
-                trigger == 0x296E097F || // SF2 - Wave World (SF2 Version)
-                trigger == 0xBDAE2406    // SF3 - Wave World (SF3 Version)
-            )
+                s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Favorite");
+                s_corePlayBgm_skip = true;
+                return true;
+            };
+
+            for (std::pair<std::vector<uint32_t>, std::shared_ptr<MenuItem>> &triggerId2Setting : s_triggerId2SettingList)
             {
-                // Leverage existing function to select random song from playlist
-                std::uint8_t bgmPlayType = sound.get<std::uint8_t>("_CurrentBgmPlayType");
-                sound.get<std::uint8_t>("_CurrentBgmPlayType");
-                sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayTypeFavorite);
+                std::vector<uint32_t> &triggerIdList = triggerId2Setting.first;
+                std::shared_ptr<MenuItem> menuItem = triggerId2Setting.second;
 
-                Object saveData = getSingleton("app.Launcher")["_saveData"];
-                Object favoriteMusicList = saveData["favoriteMusicList"];
-                saveData["favoriteMusicList"] = s_menuItemWaveRoadBgm->getCustomPlaylist();
-
-                isRecursiveCall = true;
-                sound.call(
-                    "corePlayBgm",
+                bool replaced = false;
+                if (std::find(triggerIdList.begin(), triggerIdList.end(), triggerId) != triggerIdList.end())
+                {
+                    switch (menuItem->getValue())
                     {
-                        (void *)(intptr_t)trigger,
-                        origId2TriggerId,
-                        (void *)(intptr_t)playerId,
-                    });
-                isRecursiveCall = false;
+                    default:
+                        replaced = selectNoChange(menuItem);
+                        break;
+                    case std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff):
+                        replaced = selectMusicOff(menuItem);
+                        break;
+                    case std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysOriginal):
+                        replaced = selectAlwaysOriginal(menuItem);
+                        break;
+                    case std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysArranged):
+                        replaced = selectAlwaysArranged(menuItem);
+                        break;
+                    case std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix):
+                        replaced = selectPreferMix(menuItem);
+                        break;
+                    case std::to_underlying(CustomPlaylistMenuItem::Option::Playlist):
+                        replaced = selectPlaylist(menuItem);
+                        break;
+                    }
+                }
 
-                sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayType);
-                saveData["favoriteMusicList"] = favoriteMusicList;
-
-                return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+                if (replaced)
+                {
+                    return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+                }
             }
 
             Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
@@ -658,7 +1000,14 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
 
             return REFRAMEWORK_HOOK_CALL_ORIGINAL;
         },
-        nullptr);
+        [](void **retval, auto...)
+        {
+            if (s_corePlayBgm_skip)
+            {
+                s_corePlayBgm_skip = false;
+                *retval = s_corePlayBgm_retVal;
+            }
+        });
 
     hook(
         "app.cSound_Base.baseInit",
@@ -686,7 +1035,7 @@ extern "C" __declspec(dllexport) bool reframework_plugin_initialize(const REFram
         {
             if (s_currentSound != nullptr && !s_disableEnableBgmArrangeHook)
             {
-                bool isArranged = (bool)(intptr_t)argv[2];
+                bool isArranged = (std::uint8_t)(intptr_t)argv[2];
 
                 std::uint32_t playerId = s_currentSound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
                 if (playerId >= s_isPlayerArranged.size())

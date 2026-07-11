@@ -55,39 +55,39 @@ namespace REFrameworkHelper
 			template <typename TInner = Object>
 			TInner get(std::string_view fieldName, bool isValueType = false)
 			{
-				return getInternal().get(fieldName, isValueType);
+				return getInternal().get<TInner>(fieldName, isValueType);
 			}
 
 			template <typename TInner = Object>
 			void set(std::string_view fieldName, TInner value, bool isValueType = false)
 			{
-				getInternal().set(fieldName, value, isValueType);
+				getInternal().set<TInner>(fieldName, value, isValueType);
 			}
 
 			template <typename TInner = Object>
 			TInner get(std::size_t idx)
 			{
-				return getInternal().get(idx);
+				return getInternal().get<TInner>(idx);
 			}
 
 			template <typename TInner = Object>
 			void set(std::size_t idx, TInner value)
 			{
-				getInternal().set(idx, value);
+				getInternal().set<TInner>(idx, value);
 			}
 
 			template <typename TInner = Object, class Enum>
 				requires std::is_enum_v<Enum>
 			TInner get(Enum e) const
 			{
-				return getInternal.get(e);
+				return getInternal.get<TInner>(e);
 			}
 
 			template <typename TInner = Object, class Enum>
 				requires std::is_enum_v<Enum>
 			void set(Enum e, TInner value)
 			{
-				getInternal().set(e, value);
+				getInternal().set<TInner>(e, value);
 			}
 
 			template <typename TInner = Object>
