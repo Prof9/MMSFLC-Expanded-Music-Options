@@ -118,39 +118,58 @@ bool CustomPlaylistMenuItem::saveFavoritesList(const std::filesystem::path &file
 	std::uint32_t managedObjectTypeSize = musicInfoType.m_type->get_parent_type()->get_size();
 
 	std::ofstream file;
-	file.open(fileName, std::fstream::out | std::fstream::binary | std::fstream::trunc);
-	if (!file)
+	try
 	{
-		api->log_error("Failed to create favorites file");
-		std::filesystem::remove(fileName);
-		return false;
-	}
-
-	// Write type CRC for MusicInfo
-	std::uint32_t musicInfoTypeCrc = getType("app.GUILauncherMusicPlayer.MusicInfo").m_type->get_type_info()->get_crc();
-	if (!file.write((char *)&musicInfoTypeCrc, sizeof(musicInfoTypeCrc)))
-	{
-		api->log_error("Failed to write to favorites file");
-		file.close();
-		std::filesystem::remove(fileName);
-		return false;
-	}
-
-	std::int32_t count = favoritesList.get<std::int32_t>("Count");
-	for (std::int32_t i = 0; i < count; ++i)
-	{
-		// Serialize object to file
-		Object musicInfo = favoritesList[i];
-		file.write(
-			(char *)((intptr_t)musicInfo.m_object + managedObjectTypeSize),
-			musicInfoTypeSize - managedObjectTypeSize);
+		file.open(fileName, std::fstream::out | std::fstream::binary | std::fstream::trunc);
 		if (!file)
+		{
+			api->log_error("Failed to create favorites file");
+			std::filesystem::remove(fileName);
+			return false;
+		}
+
+		// Write type CRC for MusicInfo
+		std::uint32_t musicInfoTypeCrc = getType("app.GUILauncherMusicPlayer.MusicInfo").m_type->get_type_info()->get_crc();
+		if (!file.write((char *)&musicInfoTypeCrc, sizeof(musicInfoTypeCrc)))
 		{
 			api->log_error("Failed to write to favorites file");
 			file.close();
 			std::filesystem::remove(fileName);
 			return false;
 		}
+
+		std::int32_t count = favoritesList.get<std::int32_t>("Count");
+		for (std::int32_t i = 0; i < count; ++i)
+		{
+			// Serialize object to file
+			Object musicInfo = favoritesList[i];
+			file.write(
+				(char *)((intptr_t)musicInfo.m_object + managedObjectTypeSize),
+				musicInfoTypeSize - managedObjectTypeSize);
+			if (!file)
+			{
+				api->log_error("Failed to write to favorites file");
+				file.close();
+				std::filesystem::remove(fileName);
+				return false;
+			}
+		}
+	}
+	catch (...)
+	{
+		try
+		{
+			api->log_error("Failed to write to favorites file");
+			if (file.is_open())
+			{
+				file.close();
+			}
+			std::filesystem::remove(fileName);
+		}
+		catch (...)
+		{
+		}
+		return false;
 	}
 
 	return true;

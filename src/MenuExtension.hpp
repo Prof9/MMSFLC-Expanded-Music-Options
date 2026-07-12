@@ -13,7 +13,8 @@ class MenuExtension
 public:
 	/// @brief Create new menu extension.
 	/// @param newMenuItems New menu items which are part of this extension.
-	MenuExtension(std::span<std::shared_ptr<MenuItem>> newMenuItems)
+	MenuExtension(std::span<std::shared_ptr<MenuItem>> newMenuItems, std::function<void()> onSaveFunc)
+		: m_onSaveFunc(onSaveFunc)
 	{
 		m_newMenuItems.insert(
 			m_newMenuItems.end(),
@@ -62,6 +63,9 @@ private:
 	/// @brief  Tracks all instances of this type of menu extension.
 	static inline std::vector<MenuExtension const *> s_instances;
 
+	// Instance state
+	std::function<void()> m_onSaveFunc = nullptr;
+
 	// Static state
 	static inline bool s_doUpdate = true;
 
@@ -87,6 +91,23 @@ private:
 				{
 					return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
 				}
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			},
+			nullptr));
+
+		// Hook method which is called when user exits the Settings menu
+		s_hooks.emplace_back(REFrameworkHelper::hook(
+			"app.GUILauncherOption.onDestroy()",
+			[](auto...)
+			{
+				for (MenuExtension const *instance : s_instances)
+				{
+					if (instance->m_onSaveFunc != nullptr)
+					{
+						instance->m_onSaveFunc();
+					}
+				}
+
 				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 			},
 			nullptr));

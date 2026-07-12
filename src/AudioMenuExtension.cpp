@@ -169,7 +169,7 @@ void AudioMenuExtension::installHooks()
 						nameGuid = menuItem.m_nameGuid;
 						descriptionGuid = menuItem.m_descriptionGuid;
 						cursorMax = menuItem.m_options->size();
-						cursorIdx = menuItem.getValue();
+						cursorIdx = menuItem.getCursor();
 
 						++menuItemIter;
 					}
