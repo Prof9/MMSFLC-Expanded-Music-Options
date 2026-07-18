@@ -123,7 +123,7 @@ void AudioMenuExtension::installHooks()
 		},
 		[](auto...)
 		{
-			ptrdiff_t numNewMenuItems = std::ranges::distance(getAllNewMenuItems());
+			size_t numNewMenuItems = s_activeMenuItems.size();
 
 			Object launcherOptionSound = s_launcherOptionSound;
 
@@ -145,8 +145,7 @@ void AudioMenuExtension::installHooks()
 				Object newCursorMaxList = createArray("System.Int32", s_newSoundOptionsIdx + numNewMenuItems);
 
 				// Fill new arrays
-				auto menuItemGen = getAllNewMenuItems();
-				auto menuItemIter = menuItemGen.begin();
+				auto menuItemIter = s_activeMenuItems.begin();
 				for (int i = 0; i < s_newSoundOptionsIdx + numNewMenuItems; ++i)
 				{
 					Guid nameGuid;
@@ -164,12 +163,12 @@ void AudioMenuExtension::installHooks()
 					else
 					{
 						// get new item
-						MenuItem &menuItem = *menuItemIter;
+						std::shared_ptr<MenuItem> menuItem = *menuItemIter;
 
-						nameGuid = menuItem.m_nameGuid;
-						descriptionGuid = menuItem.m_descriptionGuid;
-						cursorMax = menuItem.m_options->size();
-						cursorIdx = menuItem.getCursor();
+						nameGuid = menuItem->m_nameGuid;
+						descriptionGuid = menuItem->m_descriptionGuid;
+						cursorMax = menuItem->m_options->size();
+						cursorIdx = menuItem->getCursor();
 
 						++menuItemIter;
 					}
@@ -191,8 +190,7 @@ void AudioMenuExtension::installHooks()
 				Object newCursorNameListList = createArray("System.Array", s_newSoundOptionsIdx + numNewMenuItems);
 
 				// Fill new arrays
-				auto menuItemGen = getAllNewMenuItems();
-				auto menuItemIter = menuItemGen.begin();
+				auto menuItemIter = s_activeMenuItems.begin();
 				for (int i = 0; i < s_newSoundOptionsIdx + numNewMenuItems; ++i)
 				{
 					Object cursorNameList;
@@ -204,16 +202,16 @@ void AudioMenuExtension::installHooks()
 					else
 					{
 						// get new item
-						MenuItem &menuItem = *menuItemIter;
+						std::shared_ptr<MenuItem> menuItem = *menuItemIter;
 
 						// build new cursor name list
-						cursorNameList = createArray("System.Guid", menuItem.m_options->size());
+						cursorNameList = createArray("System.Guid", menuItem->m_options->size());
 
 						// fill new cursor name list
-						for (int j = 0; j < menuItem.m_options->size(); j++)
+						for (int j = 0; j < menuItem->m_options->size(); j++)
 						{
 							// set cursorNameList[j]
-							Guid cursorName = (*menuItem.m_options)[j].m_nameGuid;
+							Guid cursorName = (*menuItem->m_options)[j].m_nameGuid;
 							cursorNameList.set<Guid>(j, cursorName);
 						}
 
@@ -341,15 +339,14 @@ void AudioMenuExtension::installHooks()
 			std::int32_t cursorMax = cursorMaxList.get<std::int32_t>(selectedIndex);
 
 			// Get menu item
-			MenuItem *menuItem = nullptr;
+			std::shared_ptr<MenuItem> menuItem = nullptr;
 			if (selectedIndex >= s_newSoundOptionsIdx)
 			{
-				auto menuItemGen = getAllNewMenuItems();
-				auto menuItemIter = menuItemGen.begin();
+				auto menuItemIter = s_activeMenuItems.begin();
 				std::ranges::advance(menuItemIter, selectedIndex - s_newSoundOptionsIdx);
-				if (menuItemIter != menuItemGen.end())
+				if (menuItemIter != s_activeMenuItems.end())
 				{
-					menuItem = &*menuItemIter;
+					menuItem = *menuItemIter;
 				}
 			}
 
@@ -449,15 +446,14 @@ void AudioMenuExtension::installHooks()
 			Object cursorIndexList = launcherOptionSound["_CursolIndex"];
 			std::int32_t cursorIndexListLength = cursorIndexList.get<std::int32_t>("Length");
 
-			auto menuItemGen = getAllNewMenuItems();
-			auto menuItemIter = menuItemGen.begin();
-			for (std::size_t i = s_newSoundOptionsIdx; menuItemIter != menuItemGen.end(); ++i)
+			auto menuItemIter = s_activeMenuItems.begin();
+			for (std::size_t i = s_newSoundOptionsIdx; menuItemIter != s_activeMenuItems.end(); ++i)
 			{
 				// get new item
-				MenuItem &menuItem = *menuItemIter;
+				std::shared_ptr<MenuItem> menuItem = *menuItemIter;
 
-				std::int32_t value = menuItem.m_defaultValue;
-				menuItem.setValue(value);
+				std::int32_t value = menuItem->m_defaultValue;
+				menuItem->setValue(value);
 				cursorIndexList.set<std::int32_t>(i, value);
 
 				++menuItemIter;

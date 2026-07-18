@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "MenuItem.hpp"
 #include "REFrameworkHelper.hpp"
 

@@ -314,6 +314,8 @@ namespace REFrameworkHelper
 
 	Object getSingleton(std::string_view name);
 
+	void *getNativeSingleton(std::string_view name);
+
 	Type getType(std::string_view name);
 
 	template <typename T>

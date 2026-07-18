@@ -1,3 +1,5 @@
+#include <Enums_Internal.hpp>
+
 #include <algorithm>
 #include <cstdint>
 

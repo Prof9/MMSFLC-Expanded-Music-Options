@@ -31,6 +31,11 @@ add_library(REF_PLUGIN SHARED
 	"src/MessageManager.cpp"
 	"src/MessageReference.cpp"
 	"src/MessageUtility.cpp"
+	"src/MusicSystemMod.cpp"
+	"src/MusicSystemMod_Hooks.cpp"
+	"src/MusicSystemMod_Menu.cpp"
+	"src/MusicSystemMod_Settings.cpp"
+	"src/MusicSystemMod_Strings.cpp"
 	"src/REFrameworkHelper.cpp"
 )
 

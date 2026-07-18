@@ -243,6 +243,12 @@ HookRef REFrameworkHelper::hook(std::string_view fullName, REFPreHookFn preFn, R
 	size_t dotPos = fullName.find_last_of('.', parenPos);
 	assert(dotPos != std::string::npos);
 
+	// Fix for function names starting with . (e.g. .ctor())
+	while (dotPos > 0 && fullName[dotPos - 1] == '.')
+	{
+		dotPos -= 1;
+	}
+
 	// Workaround for bug in RETypeDB::find_type() where it uses unbounded .data() on the input
 	std::string typeName = std::string(fullName.substr(0, dotPos));
 	std::string_view funcName = fullName.substr(dotPos + 1);
@@ -276,6 +282,24 @@ Object REFrameworkHelper::getSingleton(std::string_view name)
 	}
 
 	return Object(object);
+}
+
+/// @brief Helper function to get native singleton
+/// @param name Name of singleton
+/// @return Native singleton
+void *REFrameworkHelper::getNativeSingleton(std::string_view name)
+{
+	auto &api = reframework::API::get();
+
+	void *object = api->get_native_singleton(name);
+	if (object == nullptr)
+	{
+		api->log_error("getNativeSingleton: unknown native singleton {}", name);
+		assert(0);
+		return nullptr;
+	}
+
+	return object;
 }
 
 /// @brief Get type by name

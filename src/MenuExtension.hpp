@@ -1,6 +1,7 @@
 #include <generator>
 #include <iterator>
 #include <memory>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -42,25 +43,14 @@ public:
 	}
 
 protected:
-	/// @brief  New menu items added by this menu extension instance.
+	/// @brief New menu items added by this menu extension instance.
 	std::vector<std::shared_ptr<MenuItem>> m_newMenuItems;
 
-	/// @brief  Get all new menu items across all menu extension instances of
-	///         this type.
-	/// @return Generator of new menu items.
-	static std::generator<MenuItem &> getAllNewMenuItems()
-	{
-		for (MenuExtension const *instance : s_instances)
-		{
-			for (std::shared_ptr<MenuItem> const &menuItem : instance->m_newMenuItems)
-			{
-				co_yield *menuItem;
-			}
-		}
-	}
+	/// @brief All active menu items across all instances.
+	static inline std::vector<std::shared_ptr<MenuItem>> s_activeMenuItems;
 
 private:
-	/// @brief  Tracks all instances of this type of menu extension.
+	/// @brief Tracks all instances of this type of menu extension.
 	static inline std::vector<MenuExtension const *> s_instances;
 
 	// Instance state
@@ -76,14 +66,42 @@ private:
 	static void installHooks()
 	{
 		s_hooks.emplace_back(REFrameworkHelper::hook(
+			"app.GUILauncherOption..ctor()",
+			[](auto...)
+			{
+				// Build list of all valid menu items based on mounted DLC
+				REFrameworkHelper::Object dlcContentsManager = REFrameworkHelper::getSingleton("app.DLCContentsManager");
+				std::vector<std::shared_ptr<MenuItem>> activeMenuItems;
+				for (MenuExtension const *instance : s_instances)
+				{
+					for (std::shared_ptr<MenuItem> const &menuItem : instance->m_newMenuItems)
+					{
+						if (menuItem->m_requiredDLC != app::DLCContentsManager::DLC_TYPE::INVALID)
+						{
+							if (!dlcContentsManager.call<bool>("getHasDLC", {(void *)(intptr_t)std::to_underlying(menuItem->m_requiredDLC)}))
+							{
+								continue;
+							}
+						}
+						activeMenuItems.push_back(menuItem);
+					}
+				}
+				s_activeMenuItems = activeMenuItems;
+
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			},
+			nullptr));
+
+		// Hook method which is called each time the Settings menu updates
+		s_hooks.emplace_back(REFrameworkHelper::hook(
 			"app.GUILauncherOption.update()",
 			[](auto...)
 			{
-				// call onUpdate() on all menu items
+				// call onUpdate() on all active menu items
 				bool doUpdate = true;
-				for (MenuItem &menuItem : getAllNewMenuItems())
+				for (std::shared_ptr<MenuItem> menuItem : s_activeMenuItems)
 				{
-					doUpdate = menuItem.onUpdate() && doUpdate;
+					doUpdate = menuItem->onUpdate() && doUpdate;
 				}
 				s_doUpdate = doUpdate;
 

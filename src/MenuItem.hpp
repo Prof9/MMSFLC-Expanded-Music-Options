@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Enums_Internal.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -25,8 +27,10 @@ public:
 
 	std::int32_t const m_defaultValue = 0;
 
-	MenuItem(Guid nameGuid, Guid descriptionGuid, const std::vector<Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue = 0)
-		: m_nameGuid(nameGuid), m_descriptionGuid(descriptionGuid), m_options(options), m_value(valuePtr), m_defaultValue(defaultValue) {}
+	app::DLCContentsManager::DLC_TYPE m_requiredDLC = app::DLCContentsManager::DLC_TYPE::INVALID;
+
+	MenuItem(Guid nameGuid, Guid descriptionGuid, const std::vector<Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue = 0, app::DLCContentsManager::DLC_TYPE requiredDLC = app::DLCContentsManager::DLC_TYPE::INVALID)
+		: m_nameGuid(nameGuid), m_descriptionGuid(descriptionGuid), m_options(options), m_value(valuePtr), m_defaultValue(defaultValue), m_requiredDLC(requiredDLC) {}
 
 	virtual ~MenuItem() = default;
 
