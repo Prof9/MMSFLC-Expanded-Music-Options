@@ -81,6 +81,8 @@ private:
 	static inline bool s_initialized = false;
 	static inline std::vector<REFrameworkHelper::HookRef> s_hooks;
 
+	static inline std::vector<bool> s_isPlayerArranged;
+
 	static inline Settings s_settings;
 
 	static inline std::shared_ptr<CustomPlaylistMenuItem> s_menuItemRealWorldBgm;

@@ -11,6 +11,7 @@
 struct Guid
 {
 	friend struct REFrameworkHelper::Object;
+	friend struct REFrameworkHelper::Type;
 
 public:
 	std::uint32_t m_data1;

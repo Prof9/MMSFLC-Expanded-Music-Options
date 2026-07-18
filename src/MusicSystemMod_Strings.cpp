@@ -70,7 +70,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"c89aa7f5-56ec-4dc1-b7e0-29a60836e0e7"_guid,
 		 {
-			 {via::Language::English, u"Select what tracks will play at the end of most won battles.\n* Some options will not apply to battles without rewards."},
+			 {via::Language::English, u"Select what tracks will play at the end of most won battles.\n(Some options will not apply to battles without rewards.)"},
 		 }},
 		{L"3744b966-9ad0-4267-bb8e-a961a0f146eb"_guid,
 		 {
@@ -182,7 +182,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"501e2a85-77ba-4f87-a7a1-b672e5674e54"_guid,
 		 {
-			 {via::Language::English, u"Always play the original or arranged track if that version is marked as Favorite.\n* This list is shared for all track types."},
+			 {via::Language::English, u"Always play the original or arranged track if that version is marked as Favorite.\n(This list is shared for all track types.)"},
 		 }},
 		{L"36fac9cf-514b-45f7-b015-b5b54b4817c3"_guid,
 		 {
@@ -206,7 +206,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"53ff37ca-a276-470c-b310-8c0ad3ce1349"_guid,
 		 {
-			 {via::Language::English, u"Play the background music from the Field Screen uninterrupted.\n* Does not apply to online Matches."},
+			 {via::Language::English, u"Play the background music from the Field Screen uninterrupted.\n(Does not apply to online Matches.)"},
 		 }},
 		{L"c7e77ba9-a882-4d37-a11b-e5900d140d51"_guid,
 		 {
@@ -214,7 +214,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"18b51d97-8636-4bb6-b6b7-4e5a2c46afd5"_guid,
 		 {
-			 {via::Language::English, u"Play the original version of the background music from the Field Screen uninterrupted.\n* Does not apply to online Matches."},
+			 {via::Language::English, u"Play the original version of the background music from the Field Screen uninterrupted.\n(Does not apply to online Matches.)"},
 		 }},
 		{L"91937c25-8452-45d8-a735-aa569695badb"_guid,
 		 {
@@ -222,7 +222,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"bdbd21a1-9136-4639-bf6a-bda1fdc18e64"_guid,
 		 {
-			 {via::Language::English, u"Play the arranged version of the background music from the Field Screen uninterrupted.\n* Does not apply to online Matches."},
+			 {via::Language::English, u"Play the arranged version of the background music from the Field Screen uninterrupted.\n(Does not apply to online Matches.)"},
 		 }},
 		{L"0a1089a5-f79f-45d4-9329-f159d2d4fdc2"_guid,
 		 {

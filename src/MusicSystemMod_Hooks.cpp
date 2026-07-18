@@ -13,10 +13,6 @@ using namespace REFrameworkHelper;
 /// @brief Install all hooks used for music system mod
 void MusicSystemMod::installHooks()
 {
-
-	static std::vector<bool> s_isPlayerArranged;
-	static Object s_currentSound;
-
 	static bool s_corePlayBgm_skip;
 	static void *s_corePlayBgm_retVal;
 
@@ -117,15 +113,15 @@ void MusicSystemMod::installHooks()
 			{
 				bool isArranged = sound.get<std::uint8_t>("_CurrentBgmPlayType") == getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Arrange");
 
-				switch (musicSettingInfo.MenuItem->getValue())
+				switch ((CustomPlaylistMenuItem::Option)musicSettingInfo.MenuItem->getValue())
 				{
-				case std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysOriginal):
+				case CustomPlaylistMenuItem::Option::AlwaysOriginal:
 					isArranged = false;
 					break;
-				case std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysArranged):
+				case CustomPlaylistMenuItem::Option::AlwaysArranged:
 					isArranged = true;
 					break;
-				case std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix):
+				case CustomPlaylistMenuItem::Option::PreferMix:
 					Object playlist = CustomPlaylistMenuItem::getPreferMixPlaylist();
 					Object musicPlayerBgmDefineList = getType("app.sound.SoundMilkyDefine")["MusicPlayerBgmDefineList"];
 					Object bgmSettingDataList = sound["_Manager"]["_BgmSettingDataList"];
@@ -208,38 +204,34 @@ void MusicSystemMod::installHooks()
 			};
 			auto selectPlaylist = [&](MusicSettingInfo &musicSettingInfo)
 			{
-				std::shared_ptr<CustomPlaylistMenuItem> playlistMenuItem = std::dynamic_pointer_cast<CustomPlaylistMenuItem>(musicSettingInfo.MenuItem);
-				std::uint8_t bgmPlayTypeFavorite = sound.get<std::uint8_t>("BgmPlayType_Favorite");
-
-				// Leverage existing function to select random song from playlist
-				std::uint8_t bgmPlayType = sound.get<std::uint8_t>("_CurrentBgmPlayType");
-				sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayTypeFavorite);
-
-				bool isCustomPlaylist = musicSettingInfo.MenuItem->getValue() == std::to_underlying(CustomPlaylistMenuItem::Option::Playlist);
-
-				Object saveData = getSingleton("app.Launcher")["_saveData"];
-				Object favoriteMusicList = saveData["favoriteMusicList"];
+				Object playlist;
+				bool isCustomPlaylist = (CustomPlaylistMenuItem::Option)musicSettingInfo.MenuItem->getValue() == CustomPlaylistMenuItem::Option::Playlist;
 				if (isCustomPlaylist)
 				{
-					saveData["favoriteMusicList"] = playlistMenuItem->getCustomPlaylist();
+					std::shared_ptr<CustomPlaylistMenuItem> playlistMenuItem = std::dynamic_pointer_cast<CustomPlaylistMenuItem>(musicSettingInfo.MenuItem);
+					playlist = playlistMenuItem->getCustomPlaylist();
 				}
-
-				isRecursiveCall = true;
-				sound.call(
-					"corePlayBgm",
-					{
-						(void *)(intptr_t)triggerId,
-						origId2TriggerId,
-						(void *)(intptr_t)playerId,
-					});
-				isRecursiveCall = false;
-
-				sound.set<std::uint8_t>("_CurrentBgmPlayType", bgmPlayType);
-
-				if (isCustomPlaylist)
+				else
 				{
-					saveData["favoriteMusicList"] = favoriteMusicList;
+					playlist = getSingleton("app.Launcher")["_saveData"]["favoriteMusicList"];
 				}
+
+				std::int32_t playlistSize = playlist.get<std::int32_t>("Count");
+				std::int32_t r = getType("via.MathEx").call<std::int32_t>("randomRangeIndex", 0, playlistSize);
+				Object musicInfo = playlist[r];
+				std::uint16_t musicId = musicInfo.get<std::uint16_t>("musicId");
+				bool isArrange = musicInfo.get<bool>("isArrange");
+
+				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
+				Object playerObject = playingBgmInfo["PlayerObject"];
+				MusicSystemMod::playBgm(playerObject, musicId, isArrange);
+
+				Type soundMilkyDefine = getType("app.sound.SoundMilkyDefine");
+				std::uint8_t series = soundMilkyDefine.call<std::uint8_t>("getMusicPlayerBgmDefine_Series", musicId);
+				std::uint8_t bgmSettingIndex = soundMilkyDefine.call<std::uint8_t>("getMusicPlayerBgmDefine_Index", musicId);
+				playingBgmInfo.set<std::uint8_t>("FavoriteBgmId_Series", series);
+				playingBgmInfo.set<std::uint8_t>("FavoriteBgmId_Index", bgmSettingIndex);
+				playingBgmInfo.set<std::uint8_t>("PlayType", getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Favorite"));
 
 				s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Favorite");
 				s_corePlayBgm_skip = true;
@@ -299,21 +291,21 @@ void MusicSystemMod::installHooks()
 					switch (musicSettingInfo.Type)
 					{
 					case MusicSettingType::CustomPlaylist:
-						switch (musicSettingInfo.MenuItem->getValue())
+						switch ((CustomPlaylistMenuItem::Option)musicSettingInfo.MenuItem->getValue())
 						{
 						default:
 							replaced = selectNoChange(musicSettingInfo);
 							break;
-						case std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff):
+						case CustomPlaylistMenuItem::Option::MusicOff:
 							replaced = selectMusicOff(musicSettingInfo);
 							break;
-						case std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysOriginal):
-						case std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysArranged):
-						case std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix):
+						case CustomPlaylistMenuItem::Option::AlwaysOriginal:
+						case CustomPlaylistMenuItem::Option::AlwaysArranged:
+						case CustomPlaylistMenuItem::Option::PreferMix:
 							replaced = selectMix(musicSettingInfo);
 							break;
-						case std::to_underlying(CustomPlaylistMenuItem::Option::Playlist):
-						case std::to_underlying(CustomPlaylistMenuItem::Option::Favorites):
+						case CustomPlaylistMenuItem::Option::Playlist:
+						case CustomPlaylistMenuItem::Option::Favorites:
 							replaced = selectPlaylist(musicSettingInfo);
 							break;
 						}
@@ -344,35 +336,18 @@ void MusicSystemMod::installHooks()
 			}
 		}));
 
-	s_hooks.emplace_back(hook(
-		"app.cSound_Base.baseInit",
-		[](int argc, void **argv, auto...)
-		{
-			s_currentSound = Object(argv[1]);
-			s_isPlayerArranged.resize(0);
-			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-		},
-		nullptr));
-
-	s_hooks.emplace_back(hook(
-		"app.cSound_Base.baseTerminate",
-		nullptr,
-		[](auto...)
-		{
-			s_currentSound = nullptr;
-			s_isPlayerArranged.resize(0);
-		}));
-
 	static bool s_disableEnableBgmArrangeHook = false;
 	s_hooks.emplace_back(hook(
 		"app.sound.SoundMilkyManager.set_EnableBgmArrange(System.Boolean)",
 		[](int argc, void **argv, auto...)
 		{
-			if (s_currentSound != nullptr && !s_disableEnableBgmArrangeHook)
+			Object manager = Object(argv[1]);
+			Object sound = manager["_IngameSoundSystem"];
+			if (sound != nullptr && !s_disableEnableBgmArrangeHook)
 			{
 				bool isArranged = (std::uint8_t)(intptr_t)argv[2];
 
-				std::uint32_t playerId = s_currentSound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
+				std::uint32_t playerId = sound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
 				if (playerId >= s_isPlayerArranged.size())
 				{
 					s_isPlayerArranged.resize(playerId + 1);

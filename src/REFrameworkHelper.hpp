@@ -52,6 +52,11 @@ namespace REFrameworkHelper
 				return value;
 			}
 
+			bool operator==(T const &b)
+			{
+				return getInternal() == b;
+			}
+
 			template <typename TInner = Object>
 			TInner get(std::string_view fieldName, bool isValueType = false)
 			{
@@ -191,10 +196,8 @@ namespace REFrameworkHelper
 
 		reframework::API::ManagedObject *m_object;
 
-		Object() : Object((reframework::API::ManagedObject *)nullptr) {}
-		Object(const void *object) : Object((reframework::API::ManagedObject *)object) {}
-		Object(reframework::API::ManagedObject *object)
-			: m_object(object) {}
+		Object() : Object(nullptr) {}
+		Object(const void *object) : m_object((reframework::API::ManagedObject *)object) {}
 
 		reframework::API::ManagedObject *operator=(void *value)
 		{
@@ -269,8 +272,6 @@ namespace REFrameworkHelper
 		template <typename T = void>
 		T call(std::string_view funcName, std::vector<void *> args = {});
 
-		friend bool
-		operator==(Object const &a, Object const &b) = default;
 		operator void *() const { return this->m_object; }
 
 	private:
@@ -308,6 +309,25 @@ namespace REFrameworkHelper
 
 		template <typename T = Object>
 		T get(std::string_view fieldName, bool isValueType = false) const;
+
+		template <typename T = void, typename... TArgs>
+		T call(std::string_view funcName, TArgs... args)
+		{
+			assert(this->m_type != nullptr);
+			auto &api = reframework::API::get();
+
+			// Call function
+			reframework::API::Method *function = m_type->find_method(funcName);
+			if (function != nullptr)
+			{
+				return function->call<T>(api->get_vm_context(), args...);
+			}
+
+			api->log_error("call: unknown function {}.{}", m_type->get_full_name(), funcName);
+			assert(0);
+
+			return T();
+		}
 	};
 
 	HookRef hook(std::string_view fullName, REFPreHookFn pre_fn, REFPostHookFn post_fn, bool ignoreJmp = false);

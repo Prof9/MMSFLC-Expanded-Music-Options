@@ -210,11 +210,11 @@ bool CustomPlaylistMenuItem::onEnter()
 	}
 
 	// Check if the current value is a playlist that can be edited
-	switch (getValue())
+	switch ((CustomPlaylistMenuItem::Option)getValue())
 	{
-	case std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix):
-	case std::to_underlying(CustomPlaylistMenuItem::Option::Playlist):
-	case std::to_underlying(CustomPlaylistMenuItem::Option::Favorites):
+	case CustomPlaylistMenuItem::Option::PreferMix:
+	case CustomPlaylistMenuItem::Option::Playlist:
+	case CustomPlaylistMenuItem::Option::Favorites:
 		break;
 	default:
 		return false;
@@ -296,10 +296,11 @@ bool CustomPlaylistMenuItem::onUpdate()
 /// @brief Install all hooks used for custom playlist editor
 void CustomPlaylistMenuItem::installHooks()
 {
-	// Hook method which starts the music player
+	// Hook method which is called during music player start
+	// immediately after setting favorites list and new album flags
 	static Object launcherMusicPlayer;
 	s_hooks.emplace_back(hook(
-		"app.GUILauncherMusicPlayer.start()",
+		"app.GUILauncherMusicPlayer.setAlbumTrackNum",
 		[](int argc, void **argv, auto...)
 		{
 			launcherMusicPlayer = Object(argv[1]);
@@ -312,23 +313,28 @@ void CustomPlaylistMenuItem::installHooks()
 		[](auto...)
 		{
 			// Set this instance's favorites list
-			if (s_activeInstance->getValue() == std::to_underlying(CustomPlaylistMenuItem::Option::Playlist))
+			switch ((CustomPlaylistMenuItem::Option)s_activeInstance->getValue())
 			{
+			case CustomPlaylistMenuItem::Option::Favorites:
+				break;
+			case CustomPlaylistMenuItem::Option::Playlist:
 				launcherMusicPlayer.set("favoriteMusicList", s_activeInstance->m_customPlaylist);
-			}
-			else if (s_activeInstance->getValue() == std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix))
-			{
+				break;
+			case CustomPlaylistMenuItem::Option::PreferMix:
 				launcherMusicPlayer.set("favoriteMusicList", s_PreferMixPlaylist);
+				break;
+			default:
+				assert(0);
 			}
 		}));
 
-	// Hook method which saves launcher data to avoid saving
+	// Hook method which saves launcher data
 	s_hooks.emplace_back(hook(
 		"app.SaveDataManager.requestSaveUserData_Launcher",
 		[](auto...)
 		{
 			// If we are editing the actual favorites list, do a save
-			if (s_activeInstance->getValue() == std::to_underlying(CustomPlaylistMenuItem::Option::Favorites))
+			if ((CustomPlaylistMenuItem::Option)s_activeInstance->getValue() == CustomPlaylistMenuItem::Option::Favorites)
 			{
 				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 			}

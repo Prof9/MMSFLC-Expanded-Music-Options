@@ -198,7 +198,7 @@ T Object::callInternal(std::string_view funcName, T reframework::InvokeRet::*inv
 	}
 
 	auto &api = reframework::API::get();
-	api->log_error("get: {} is not an array", type->get_full_name());
+	api->log_error("call: unknown function {}.{}", type->get_full_name(), funcName);
 	assert(0);
 
 	return T();
