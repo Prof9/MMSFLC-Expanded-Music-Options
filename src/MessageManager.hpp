@@ -17,6 +17,7 @@ class MessageManager
 	struct NativeObject;
 	struct Tree;
 	struct Node;
+	struct NodeContainer;
 
 private:
 	MessageManager::NativeObject *nativeObject;

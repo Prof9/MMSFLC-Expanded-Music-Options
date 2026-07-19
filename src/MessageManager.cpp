@@ -29,6 +29,17 @@ struct MessageManager::Node
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+struct MessageManager::NodeContainer
+{
+	uint64_t field_0x00;
+	uint64_t field_0x08_keepZero; // used during deallocation
+	uint64_t field_0x10_keepZero; // used during deallocation
+
+	MessageManager::Node node;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct MessageManager::Tree
 {
 	MessageManager::Node *minChild;
@@ -155,8 +166,15 @@ bool MessageManager::createAndLoadMessages(std::map<Guid, std::map<via::Language
 		MessageManager::Node *node;
 		MessageManager::Node *prevNode;
 		std::tie(node, prevNode) = this->findNode(guid);
+		if (node != nullptr)
+		{
+			// Message with this GUID already exists?
+			continue;
+		}
 
-		node = (MessageManager::Node *)calloc(1, sizeof(MessageManager::Node));
+		// Once inserted into the tree, this object will get freed by the game when it exits
+		MessageManager::NodeContainer *nodeContainer = (MessageManager::NodeContainer *)calloc(1, sizeof(MessageManager::NodeContainer));
+		node = &nodeContainer->node;
 		node->parent = prevNode;
 		node->childGreater = (MessageManager::Node *)this->nativeObject->messageTree;
 		node->childLesser = (MessageManager::Node *)this->nativeObject->messageTree;
