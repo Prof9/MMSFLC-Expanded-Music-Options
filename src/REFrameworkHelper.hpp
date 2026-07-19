@@ -42,42 +42,42 @@ namespace REFrameworkHelper
 		public:
 			Object m_obj;
 
-			operator T()
+			operator T() const
 			{
 				return getInternal();
 			}
 
-			T operator=(T value)
+			T operator=(T value) const
 			{
 				setInternal(value);
 				return value;
 			}
 
-			bool operator==(T const &b)
+			bool operator==(T const &b) const
 			{
 				return getInternal() == b;
 			}
 
 			template <typename TInner = Object>
-			TInner get(std::string_view fieldName, bool isValueType = false)
+			TInner get(std::string_view fieldName, bool isValueType = false) const
 			{
 				return getInternal().get<TInner>(fieldName, isValueType);
 			}
 
 			template <typename TInner = Object>
-			void set(std::string_view fieldName, TInner value, bool isValueType = false)
+			void set(std::string_view fieldName, TInner value, bool isValueType = false) const
 			{
 				getInternal().set<TInner>(fieldName, value, isValueType);
 			}
 
 			template <typename TInner = Object>
-			TInner get(std::size_t idx)
+			TInner get(std::size_t idx) const
 			{
 				return getInternal().get<TInner>(idx);
 			}
 
 			template <typename TInner = Object>
-			void set(std::size_t idx, TInner value)
+			void set(std::size_t idx, TInner value) const
 			{
 				getInternal().set<TInner>(idx, value);
 			}
@@ -91,7 +91,7 @@ namespace REFrameworkHelper
 
 			template <typename TInner = Object, class Enum>
 				requires std::is_enum_v<Enum>
-			void set(Enum e, TInner value)
+			void set(Enum e, TInner value) const
 			{
 				getInternal().set<TInner>(e, value);
 			}
@@ -135,7 +135,7 @@ namespace REFrameworkHelper
 			}
 
 			template <typename TInner = void, typename... TArgs>
-			TInner call(std::string_view funcName, TArgs... args)
+			TInner call(std::string_view funcName, TArgs... args) const
 			{
 				return getInternal().call<TInner>(funcName, args...);
 			}
@@ -143,8 +143,8 @@ namespace REFrameworkHelper
 		protected:
 			ObjectGetterSetter(Object obj) : m_obj(obj) {}
 
-			virtual T getInternal() = 0;
-			virtual void setInternal(T value) = 0;
+			virtual T getInternal() const = 0;
+			virtual void setInternal(T value) const = 0;
 		};
 
 		template <typename T>
@@ -152,7 +152,7 @@ namespace REFrameworkHelper
 		{
 			ObjectGetterSetterByIndex(Object obj, std::size_t index) : ObjectGetterSetter<T>(obj), m_index(index) {}
 
-			T operator=(T value)
+			T operator=(T value) const
 			{
 				return ObjectGetterSetter<T>::operator=(value);
 			}
@@ -160,12 +160,12 @@ namespace REFrameworkHelper
 		protected:
 			std::size_t m_index;
 
-			T getInternal()
+			T getInternal() const
 			{
 				return this->m_obj.get<T>(m_index);
 			}
 
-			void setInternal(T value)
+			void setInternal(T value) const
 			{
 				this->m_obj.set<T>(m_index, value);
 			}
@@ -176,7 +176,7 @@ namespace REFrameworkHelper
 		{
 			ObjectGetterSetterByName(Object obj, std::string_view name) : ObjectGetterSetter<T>(obj), m_name(name) {}
 
-			T operator=(T value)
+			T operator=(T value) const
 			{
 				return ObjectGetterSetter<T>::operator=(value);
 			}
@@ -184,12 +184,12 @@ namespace REFrameworkHelper
 		protected:
 			std::string_view m_name;
 
-			T getInternal()
+			T getInternal() const
 			{
 				return this->m_obj.get<T>(m_name);
 			}
 
-			void setInternal(T value)
+			void setInternal(T value) const
 			{
 				this->m_obj.set<T>(m_name, value);
 			}
@@ -207,27 +207,27 @@ namespace REFrameworkHelper
 		}
 
 		template <typename T = Object>
-		T get(std::string_view fieldName, bool isValueType = false);
+		T get(std::string_view fieldName, bool isValueType = false) const;
 
 		template <typename T = Object>
-		void set(std::string_view fieldName, T value, bool isValueType = false);
+		void set(std::string_view fieldName, T value, bool isValueType = false) const;
 
 		template <typename T = Object>
-		T get(std::size_t idx);
+		T get(std::size_t idx) const;
 
 		template <typename T = Object>
-		void set(std::size_t idx, T value);
+		void set(std::size_t idx, T value) const;
 
 		template <typename T = Object, class Enum>
 			requires std::is_enum_v<Enum>
-		T get(Enum e)
+		T get(Enum e) const
 		{
 			return this->get(std::to_underlying(e));
 		}
 
 		template <typename T = Object, class Enum>
 			requires std::is_enum_v<Enum>
-		void set(Enum e, T value)
+		void set(Enum e, T value) const
 		{
 			this->set(std::to_underlying(e), value);
 		}
@@ -271,7 +271,7 @@ namespace REFrameworkHelper
 		}
 
 		template <typename T = void, typename... TArgs>
-		T call(std::string_view funcName, TArgs... args)
+		T call(std::string_view funcName, TArgs... args) const
 		{
 			assert(this->m_object != nullptr);
 
@@ -308,16 +308,16 @@ namespace REFrameworkHelper
 
 	private:
 		template <typename T>
-		T getField(std::string_view fieldName, T reframework::InvokeRet::*invokeRetField, bool isValueType = false);
+		T getField(std::string_view fieldName, T reframework::InvokeRet::*invokeRetField, bool isValueType = false) const;
 
 		template <typename T>
-		void setField(std::string_view fieldName, T value, bool isValueType = false);
+		void setField(std::string_view fieldName, T value, bool isValueType = false) const;
 
 		template <typename T>
-		T getArray(std::size_t idx, T reframework::InvokeRet::*invokeRetField);
+		T getArray(std::size_t idx, T reframework::InvokeRet::*invokeRetField) const;
 
 		template <typename T>
-		void setArray(std::size_t idx, T value);
+		void setArray(std::size_t idx, T value) const;
 	};
 
 	/// @brief Wrapper for reframework::API::TypeDefinition
@@ -340,7 +340,7 @@ namespace REFrameworkHelper
 		T get(std::string_view fieldName, bool isValueType = false) const;
 
 		template <typename T = void, typename... TArgs>
-		T call(std::string_view funcName, TArgs... args)
+		T call(std::string_view funcName, TArgs... args) const
 		{
 			assert(this->m_type != nullptr);
 			auto &api = reframework::API::get();

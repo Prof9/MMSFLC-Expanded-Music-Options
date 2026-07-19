@@ -504,12 +504,5 @@ void MusicSystemMod::buildMenu()
 			},
 			.MenuItem = s_menuItemMiscellaneousBgm,
 		},
-		{
-			.Type = MusicSettingType::CustomPlaylist,
-			.TriggerIDs = {
-
-			},
-			.MenuItem = s_menuItemMainMenuBgm,
-		},
 	};
 }

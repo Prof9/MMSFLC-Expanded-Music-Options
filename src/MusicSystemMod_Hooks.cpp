@@ -205,7 +205,15 @@ void MusicSystemMod::installHooks()
 					playlist = getSingleton("app.Launcher")["_saveData"]["favoriteMusicList"];
 				}
 
+				if (playlist == nullptr)
+				{
+					return false;
+				}
 				std::int32_t playlistSize = playlist.get<std::int32_t>("Count");
+				if (playlistSize == 0)
+				{
+					return false;
+				}
 				std::int32_t r = getType("via.MathEx").call<std::int32_t>("randomRangeIndex", 0, playlistSize);
 				Object musicInfo = playlist[r];
 				std::uint16_t musicId = musicInfo.get<std::uint16_t>("musicId");
@@ -361,6 +369,156 @@ void MusicSystemMod::installHooks()
 			sound["_Manager"].set<bool>("EnableBgmArrange", isArranged);
 			s_disableEnableBgmArrangeHook = false;
 
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
+	static std::uint16_t launcherReplacedBgmId = getType("app.sound.SoundMilkyDefine").get<std::uint16_t>("INVALID_BGM_ID");
+	s_hooks.emplace_back(hook(
+		"app.sound.SoundLauncherBgmManager.update",
+		[](int argc, void **argv, auto...)
+		{
+			Object soundLauncherBgmManager = Object(argv[1]);
+
+			if (!soundLauncherBgmManager.get<bool>("_IsInit"))
+			{
+				launcherReplacedBgmId = getType("app.sound.SoundMilkyDefine").get<std::uint16_t>("INVALID_BGM_ID");
+			}
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
+	s_hooks.emplace_back(hook(
+		"app.sound.SoundLauncherBgmManager.playBgm",
+		[](int argc, void **argv, auto...)
+		{
+			Object soundLauncherBgmManager = Object(argv[1]);
+			std::uint16_t bgmId = (std::uint16_t)(intptr_t)argv[2];
+			Object srcObj = Object(argv[3]);
+
+			Type soundMilkyDefine = getType("app.sound.SoundMilkyDefine");
+
+			auto selectNoChange = [&](CustomPlaylistMenuItem::Option optionValue)
+			{
+				return false;
+			};
+			auto selectMusicOff = [&](CustomPlaylistMenuItem::Option optionValue)
+			{
+				soundLauncherBgmManager.call("stopMainBgm");
+
+				Type bgmRequestType = getType("app.sound.SoundLauncherBgmManager.BgmRequest");
+				std::uint64_t bgmRequestRaw = soundLauncherBgmManager.get<std::uint64_t>("_BgmRequest");
+				*(std::uint16_t *)bgmRequestType.m_type->find_field("BgmId")->get_data_raw(&bgmRequestRaw, true) = soundMilkyDefine.get<std::uint16_t>("INVALID_BGM_ID");
+				soundLauncherBgmManager.set<std::uint64_t>("_BgmRequest", bgmRequestRaw);
+
+				launcherReplacedBgmId = soundMilkyDefine.get<std::uint16_t>("INVALID_BGM_ID");
+
+				return true;
+			};
+			auto selectPlaylist = [&](CustomPlaylistMenuItem::Option optionValue)
+			{
+				Object playlist;
+				bool isCustomPlaylist = optionValue == CustomPlaylistMenuItem::Option::Playlist;
+				if (isCustomPlaylist)
+				{
+					playlist = s_menuItemMainMenuBgm->getCustomPlaylist();
+				}
+				else
+				{
+					playlist = getSingleton("app.Launcher")["_saveData"]["favoriteMusicList"];
+				}
+
+				if (playlist == nullptr)
+				{
+					return false;
+				}
+				std::int32_t playlistSize = playlist.get<std::int32_t>("Count");
+				if (playlistSize == 0)
+				{
+					return false;
+				}
+				std::int32_t r = getType("via.MathEx").call<std::int32_t>("randomRangeIndex", 0, playlistSize);
+				Object musicInfo = playlist[r];
+				std::uint16_t musicId = musicInfo.get<std::uint16_t>("musicId");
+				bool isArrange = musicInfo.get<bool>("isArrange");
+
+				if (!MusicSystemMod::playBgm(srcObj, musicId, isArrange))
+				{
+					return false;
+				}
+
+				// Type bgmRequestType = getType("app.sound.SoundLauncherBgmManager.BgmRequest");
+				// std::uint64_t bgmRequestRaw = soundLauncherBgmManager.get<std::uint64_t>("_BgmRequest");
+				// *(std::uint16_t *)bgmRequestType.m_type->find_field("BgmId")->get_data_raw(&bgmRequestRaw, true) = musicId;
+				// soundLauncherBgmManager.set<std::uint64_t>("_BgmRequest", bgmRequestRaw);
+
+				launcherReplacedBgmId = musicId;
+				return true;
+			};
+
+			if (srcObj != soundLauncherBgmManager["GameObject"])
+			{
+				// ignore replace for sub player
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+
+			launcherReplacedBgmId = soundMilkyDefine.get<std::uint16_t>("INVALID_BGM_ID");
+
+			if (bgmId != soundMilkyDefine.get<std::uint16_t>("BGM_LAUNCHER_01") &&
+				bgmId != soundMilkyDefine.get<std::uint16_t>("BGM_LAUNCHER_02") &&
+				bgmId != soundMilkyDefine.get<std::uint16_t>("BGM_LAUNCHER_03") &&
+				bgmId != soundMilkyDefine.get<std::uint16_t>("BGM_LAUNCHER_04"))
+			{
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+
+			bool replaced;
+			CustomPlaylistMenuItem::Option optionValue = (CustomPlaylistMenuItem::Option)s_menuItemMainMenuBgm->getValue();
+			switch (optionValue)
+			{
+			default:
+				replaced = selectNoChange(optionValue);
+				break;
+			case CustomPlaylistMenuItem::Option::MusicOff:
+				replaced = selectMusicOff(optionValue);
+				break;
+			case CustomPlaylistMenuItem::Option::Playlist:
+			case CustomPlaylistMenuItem::Option::Favorites:
+				replaced = selectPlaylist(optionValue);
+				break;
+			}
+
+			if (replaced)
+			{
+				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
+	s_hooks.emplace_back(hook(
+		"app.sound.SoundLauncherBgmManager.stopBgm",
+		[](int argc, void **argv, auto...)
+		{
+			Object soundLauncherBgmManager = Object(argv[1]);
+			// std::uint16_t bgmId = (std::uint16_t)(intptr_t)argv[2];
+			Object srcObj = Object(argv[3]);
+			// bool isStaffRoll = (bool)(intptr_t)argv[4];
+
+			if (srcObj != soundLauncherBgmManager["GameObject"])
+			{
+				// ignore replace for sub player
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+
+			if (launcherReplacedBgmId == getType("app.sound.SoundMilkyDefine").get<std::uint16_t>("INVALID_BGM_ID"))
+			{
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+
+			// Stop the actual BGM that we're playing
+			argv[2] = (void *)(intptr_t)launcherReplacedBgmId;
 			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
 		nullptr));

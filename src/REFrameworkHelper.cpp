@@ -64,7 +64,7 @@ void HookRef::unhook()
 }
 
 template <typename T>
-T Object::getField(std::string_view fieldName, T reframework::InvokeRet::*invokeRetField, bool isValueType)
+T Object::getField(std::string_view fieldName, T reframework::InvokeRet::*invokeRetField, bool isValueType) const
 {
 	assert(this->m_object != nullptr);
 
@@ -96,7 +96,7 @@ T Object::getField(std::string_view fieldName, T reframework::InvokeRet::*invoke
 }
 
 template <typename T>
-void Object::setField(std::string_view fieldName, T value, bool isValueType)
+void Object::setField(std::string_view fieldName, T value, bool isValueType) const
 {
 	assert(this->m_object != nullptr);
 
@@ -136,7 +136,7 @@ void Object::setField(std::string_view fieldName, T value, bool isValueType)
 }
 
 template <typename T>
-T Object::getArray(size_t idx, T reframework::InvokeRet::*invokeRetField)
+T Object::getArray(size_t idx, T reframework::InvokeRet::*invokeRetField) const
 {
 	assert(this->m_object != nullptr);
 
@@ -160,7 +160,7 @@ T Object::getArray(size_t idx, T reframework::InvokeRet::*invokeRetField)
 }
 
 template <typename T>
-void Object::setArray(size_t idx, T value)
+void Object::setArray(size_t idx, T value) const
 {
 	assert(this->m_object != nullptr);
 
@@ -375,35 +375,35 @@ Object REFrameworkHelper::createString(wchar_t const *string)
 
 #define CREATE_FIELD_GETTER(externalType, invokeRetField)                                                       \
 	template <>                                                                                                 \
-	externalType Object::get(std::string_view fieldName, bool isValueType)                                      \
+	externalType Object::get(std::string_view fieldName, bool isValueType) const                                \
 	{                                                                                                           \
 		return externalType(this->getField<decltype(invokeRetField)>(fieldName, &invokeRetField, isValueType)); \
 	}
 
 #define CREATE_FIELD_SETTER(externalType, invokeRetField, valueConverted)                                             \
 	template <>                                                                                                       \
-	void Object::set(std::string_view fieldName, externalType value, bool isValueType)                                \
+	void Object::set(std::string_view fieldName, externalType value, bool isValueType) const                          \
 	{                                                                                                                 \
 		this->setField<decltype(invokeRetField)>(fieldName, (decltype(invokeRetField))(valueConverted), isValueType); \
 	}
 
 #define CREATE_ARRAY_GETTER(externalType, invokeRetField)                                    \
 	template <>                                                                              \
-	externalType Object::get(size_t idx)                                                     \
+	externalType Object::get(size_t idx) const                                               \
 	{                                                                                        \
 		return externalType(this->getArray<decltype(invokeRetField)>(idx, &invokeRetField)); \
 	}
 
 #define CREATE_ARRAY_SETTER(externalType, invokeRetField, valueConverted)                          \
 	template <>                                                                                    \
-	void Object::set(size_t idx, externalType value)                                               \
+	void Object::set(size_t idx, externalType value) const                                         \
 	{                                                                                              \
 		this->setArray<decltype(invokeRetField)>(idx, (decltype(invokeRetField))(valueConverted)); \
 	}
 
 #define CREATE_TYPE_FIELD_GETTER(externalType, invokeRetField)                                                  \
 	template <>                                                                                                 \
-	externalType Type::get(std::string_view fieldName, bool isValueType)                                        \
+	externalType Type::get(std::string_view fieldName, bool isValueType) const                                  \
 	{                                                                                                           \
 		return externalType(this->getField<decltype(invokeRetField)>(fieldName, &invokeRetField, isValueType)); \
 	}
