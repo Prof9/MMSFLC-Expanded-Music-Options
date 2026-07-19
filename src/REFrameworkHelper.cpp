@@ -180,30 +180,6 @@ void Object::setArray(size_t idx, T value)
 	assert(0);
 }
 
-template <typename T>
-T Object::callInternal(std::string_view funcName, T reframework::InvokeRet::*invokeRetField, std::vector<void *> args)
-{
-	assert(this->m_object != nullptr);
-
-	reframework::API::TypeDefinition *type = this->m_object->get_type_definition();
-	assert(type != nullptr);
-
-	// Call function
-	reframework::API::Method *function = type->find_method(funcName);
-	if (function != nullptr)
-	{
-		reframework::InvokeRet ret = function->invoke(this->m_object, args);
-
-		return ret.*invokeRetField;
-	}
-
-	auto &api = reframework::API::get();
-	api->log_error("call: unknown function {}.{}", type->get_full_name(), funcName);
-	assert(0);
-
-	return T();
-}
-
 /// @brief Get value of field in this type
 /// @tparam T Type of value returned
 /// @param fieldName Name of field
@@ -425,13 +401,6 @@ Object REFrameworkHelper::createString(wchar_t const *string)
 		this->setArray<decltype(invokeRetField)>(idx, (decltype(invokeRetField))(valueConverted)); \
 	}
 
-#define CREATE_CALLER(externalType, invokeRetField)                                                         \
-	template <>                                                                                             \
-	externalType Object::call(std::string_view funcName, std::vector<void *> args)                          \
-	{                                                                                                       \
-		return externalType(this->callInternal<decltype(invokeRetField)>(funcName, &invokeRetField, args)); \
-	}
-
 #define CREATE_TYPE_FIELD_GETTER(externalType, invokeRetField)                                                  \
 	template <>                                                                                                 \
 	externalType Type::get(std::string_view fieldName, bool isValueType)                                        \
@@ -447,7 +416,6 @@ Object REFrameworkHelper::createString(wchar_t const *string)
 	CREATE_FIELD_SETTER(externalType, invokeRetField, valueConverted) \
 	CREATE_ARRAY_GETTER(externalType, invokeRetField)                 \
 	CREATE_ARRAY_SETTER(externalType, invokeRetField, valueConverted) \
-	CREATE_CALLER(externalType, invokeRetField)                       \
 	CREATE_STATIC_FIELD_GETTER(externalType)
 
 CREATE_ALL(bool, reframework::InvokeRet::byte, value)
@@ -463,9 +431,3 @@ CREATE_ALL(float, reframework::InvokeRet::f, value)
 CREATE_ALL(double, reframework::InvokeRet::d, value)
 CREATE_ALL(Object, reframework::InvokeRet::ptr, value.m_object)
 CREATE_ALL(Guid, reframework::InvokeRet::bytes, value)
-
-template <>
-void Object::call(std::string_view funcName, std::vector<void *> args)
-{
-	this->callInternal<void *>(funcName, &reframework::InvokeRet::ptr, args);
-}

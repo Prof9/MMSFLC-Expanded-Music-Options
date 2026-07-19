@@ -4,6 +4,7 @@
 #include <optional>
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 #include <reframework/API.hpp>
@@ -133,10 +134,10 @@ namespace REFrameworkHelper
 				return getInternal().get<TInner>(std::to_underlying(e));
 			}
 
-			template <typename TInner = void>
-			TInner call(std::string_view funcName, std::vector<void *> args = {})
+			template <typename TInner = void, typename... TArgs>
+			TInner call(std::string_view funcName, TArgs... args)
 			{
-				return getInternal().call<TInner>(funcName, args);
+				return getInternal().call<TInner>(funcName, args...);
 			}
 
 		protected:
@@ -269,8 +270,39 @@ namespace REFrameworkHelper
 			return this->get<T>(std::to_underlying(e));
 		}
 
-		template <typename T = void>
-		T call(std::string_view funcName, std::vector<void *> args = {});
+		template <typename T = void, typename... TArgs>
+		T call(std::string_view funcName, TArgs... args)
+		{
+			assert(this->m_object != nullptr);
+
+			reframework::API::TypeDefinition *type = this->m_object->get_type_definition();
+			assert(type != nullptr);
+
+			// Call function
+			reframework::API::Method *function = type->find_method(funcName);
+			if (function != nullptr)
+			{
+				std::vector<void *> argv;
+				([&]
+				 { argv.push_back((void *)args); }(),
+				 ...);
+				reframework::InvokeRet ret = function->invoke(this->m_object, argv);
+				if constexpr (std::is_void_v<T>)
+				{
+					return;
+				}
+				else
+				{
+					return *((T *)&ret);
+				}
+			}
+
+			auto &api = reframework::API::get();
+			api->log_error("call: unknown function {}.{}", type->get_full_name(), funcName);
+			assert(0);
+
+			return T();
+		}
 
 		operator void *() const { return this->m_object; }
 
@@ -286,9 +318,6 @@ namespace REFrameworkHelper
 
 		template <typename T>
 		void setArray(std::size_t idx, T value);
-
-		template <typename T>
-		T callInternal(std::string_view funcName, T reframework::InvokeRet::*invokeRetField, std::vector<void *> args);
 	};
 
 	/// @brief Wrapper for reframework::API::TypeDefinition

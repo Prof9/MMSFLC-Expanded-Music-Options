@@ -78,7 +78,7 @@ private:
 					{
 						if (menuItem->m_requiredDLC != app::DLCContentsManager::DLC_TYPE::INVALID)
 						{
-							if (!dlcContentsManager.call<bool>("getHasDLC", {(void *)(intptr_t)std::to_underlying(menuItem->m_requiredDLC)}))
+							if (!dlcContentsManager.call<bool>("getHasDLC", menuItem->m_requiredDLC))
 							{
 								continue;
 							}

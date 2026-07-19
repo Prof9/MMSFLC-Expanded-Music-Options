@@ -49,7 +49,7 @@ void AudioMenuExtension::updateList(Object launcherOptionSound)
 		std::int32_t listIndex = selectItem.get<std::int32_t>("ListIndex");
 
 		// Normally the game will compute a MurmurHash3 of the string, but this is easier
-		Object parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_MsgId_Option_List_Item_Name});
+		Object parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", str_MsgId_Option_List_Item_Name);
 		Guid nameGuid = nameList.get<Guid>(listIndex);
 		parameterVariable.set<Guid>("ValueMessageId", {nameGuid});
 
@@ -62,16 +62,16 @@ void AudioMenuExtension::updateList(Object launcherOptionSound)
 		{
 			selectItem.set<std::uint32_t>("StatePattern", patternSlider);
 
-			parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_ObjPath_PNL_Option_List_Item_Slider_Path});
+			parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", str_ObjPath_PNL_Option_List_Item_Slider_Path);
 			Object objPath = parameterVariable["ValueObjectPath"];
-			Object sliderPanel = selectItem.call<Object>("getObject(System.String)", {objPath});
+			Object sliderPanel = selectItem.call<Object>("getObject(System.String)", objPath);
 
-			Object paramVariable_floatSliderValueInit = sliderPanel.call<Object>("getParameterLegacy(System.String)", {str_Float_Slider_Value_Init});
+			Object paramVariable_floatSliderValueInit = sliderPanel.call<Object>("getParameterLegacy(System.String)", str_Float_Slider_Value_Init);
 			double volumeInitValue = volumeInitValueList.get<double>(listIndex);
 			double sliderValueInit = volumeInitValue / (cursorMax - 1) * 100.0;
 			paramVariable_floatSliderValueInit.set<double>("ValueFloat", sliderValueInit);
 
-			Object paramVariable_floatSliderValueCurrent = sliderPanel.call<Object>("getParameterLegacy(System.String)", {str_Float_Slider_Value_Current});
+			Object paramVariable_floatSliderValueCurrent = sliderPanel.call<Object>("getParameterLegacy(System.String)", str_Float_Slider_Value_Current);
 			double sliderValueCurrent = (double)cursorIndex / (cursorMax - 1) * 100.0;
 			paramVariable_floatSliderValueCurrent.set<double>("ValueFloat", sliderValueCurrent);
 		}
@@ -79,18 +79,18 @@ void AudioMenuExtension::updateList(Object launcherOptionSound)
 		{
 			selectItem.set<std::uint32_t>("StatePattern", patternLRSelection);
 
-			parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", {str_ObjPath_PNL_Option_List_Item_LR_Selection_Path});
+			parameterVariable = selectItem.call<Object>("getParameterLegacy(System.String)", str_ObjPath_PNL_Option_List_Item_LR_Selection_Path);
 			Object objPath = parameterVariable["ValueObjectPath"];
-			Object selectionPanel = selectItem.call<Object>("getObject(System.String)", {objPath});
+			Object selectionPanel = selectItem.call<Object>("getObject(System.String)", objPath);
 
-			Object parameterVariable_buttonMessage = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_MsgId_LR_Selection_Button_Message});
+			Object parameterVariable_buttonMessage = selectionPanel.call<Object>("getParameterLegacy(System.String)", str_MsgId_LR_Selection_Button_Message);
 			Guid cursorGuid = cursorNameList.get<Guid>(cursorIndex);
 			parameterVariable_buttonMessage.set<Guid>("ValueMessageId", cursorGuid);
 
-			Object parameterVariable_leftVisible = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_Bool_LR_Selection_Cursor_Left_Visible});
+			Object parameterVariable_leftVisible = selectionPanel.call<Object>("getParameterLegacy(System.String)", str_Bool_LR_Selection_Cursor_Left_Visible);
 			parameterVariable_leftVisible.set<bool>("ValueBool", cursorIndex > 0);
 
-			Object parameterVariable_rightVisible = selectionPanel.call<Object>("getParameterLegacy(System.String)", {str_Bool_LR_Selection_Cursor_Right_Visible});
+			Object parameterVariable_rightVisible = selectionPanel.call<Object>("getParameterLegacy(System.String)", str_Bool_LR_Selection_Cursor_Right_Visible);
 			parameterVariable_rightVisible.set<bool>("ValueBool", cursorIndex < cursorMax - 1);
 		}
 	}
@@ -104,7 +104,7 @@ void AudioMenuExtension::updateGuidMessage(Object launcherOptionSound)
 	std::int32_t selectedIndex = launcherOptionSound.get<std::int32_t>("_SelectedIndex");
 	Guid guid = guidList.get<Guid>(selectedIndex);
 
-	launcherOptionSound.call("setGuidMessage(System.Guid)", {&guid});
+	launcherOptionSound.call("setGuidMessage", &guid);
 }
 
 /// @brief Install all hooks used for audio menu extensions
@@ -240,6 +240,7 @@ void AudioMenuExtension::installHooks()
 			}
 			*barPath_ptr = str_scrollBarPath.m_object;
 			str_scrollBarPath.m_object->add_ref();
+			assert(soundList["BarPath"] == str_scrollBarPath); // if this fails then FLUENT_SCROLL_LIST_OFFSET_BAR_PATH has changed
 
 			// set soundList.ItemCount
 			soundList.set<std::int32_t>("ItemCount", s_newSoundOptionsIdx + numNewMenuItems);
@@ -248,7 +249,7 @@ void AudioMenuExtension::installHooks()
 			// Technically the game calls getObject(System.String, System.Type),
 			// which we could do with tdb->find_type("via.gui.Panel")->get_type(),
 			// but we don't care about the strong typing anyway
-			Object fluentScrollBar = soundList.call<Object>("getObject(System.String)", {str_scrollBarPath});
+			Object fluentScrollBar = soundList.call<Object>("getObject(System.String)", str_scrollBarPath);
 
 			if (s_newSoundOptionsIdx + numNewMenuItems > ITEMS_PER_PAGE)
 			{
@@ -261,13 +262,13 @@ void AudioMenuExtension::installHooks()
 				// Technically the game calls getObject(System.String, System.Type),
 				// which we could do with tdb->find_type("via.gui.Panel")->get_type(),
 				// but we don't care about the strong typing anyway
-				Object textPrev = fluentScrollBar.call<Object>("getObject(System.String)", {str_textPrevPath});
+				Object textPrev = fluentScrollBar.call<Object>("getObject(System.String)", str_textPrevPath);
 
 				// call fluentScrollBar.getObject
 				// Technically the game calls getObject(System.String, System.Type),
 				// which we could do with tdb->find_type("via.gui.Panel")->get_type(),
 				// but we don't care about the strong typing anyway
-				Object textNext = fluentScrollBar.call<Object>("getObject(System.String)", {str_textNextPath});
+				Object textNext = fluentScrollBar.call<Object>("getObject(System.String)", str_textNextPath);
 
 				fluentScrollBar.set<bool>("Visible", true);
 
@@ -302,10 +303,8 @@ void AudioMenuExtension::installHooks()
 			// returns true if different item is selected and updates selectedIndex
 			bool isUpdateList = launcherOptionSound.call<bool>(
 				"isUpdateList",
-				{
-					&selectedIndex, // passed by ref
-					(void *)(intptr_t)(cursorIndexListLength),
-				});
+				&selectedIndex, // passed by ref
+				cursorIndexListLength);
 
 			if (isUpdateList)
 			{
@@ -321,10 +320,9 @@ void AudioMenuExtension::installHooks()
 			// also calls soundList.set_SelectedIndex internally
 			bool isUpdateListPage = launcherOptionSound.call<bool>(
 				"isUpdateListPage",
-				{
-					soundList,
-					&selectedIndex, // passed by ref
-				});
+				soundList,
+				&selectedIndex // passed by ref
+			);
 
 			if (isUpdateListPage)
 			{
@@ -356,11 +354,9 @@ void AudioMenuExtension::installHooks()
 			// so we have to use the temporary variable
 			bool isUpdateSelectedItem = launcherOptionSound.call<bool>(
 				"isUpdateSelectedItem(System.Int32, System.Int32, System.Boolean)",
-				{
-					&cursorIndex, // passed by ref
-					(void *)(intptr_t)cursorMax,
-					(void *)(intptr_t)false,
-				});
+				&cursorIndex, // passed by ref
+				cursorMax,
+				false);
 
 			if (isUpdateSelectedItem)
 			{
@@ -378,7 +374,7 @@ void AudioMenuExtension::installHooks()
 						if (option.m_descriptionGuid.has_value())
 						{
 							Guid guid = option.m_descriptionGuid.value();
-							launcherOptionSound.call("setGuidMessage(System.Guid)", {&guid});
+							launcherOptionSound.call("setGuidMessage", &guid);
 						}
 					}
 					menuItem->setValue(value);
@@ -402,19 +398,11 @@ void AudioMenuExtension::installHooks()
 				// call app.GameInputManager.isLauncherInputSuccess()
 				// returns true if key is pressed on item
 				Object gameInputManager = getSingleton("app.GameInputManager");
-				bool isInputDecide = gameInputManager.call<bool>(
-					"isLauncherInputSuccess(app.LauncherInputKey.KEY)",
-					{
-						(void *)(intptr_t)app::LauncherInputKey::KEY::DECIDE,
-					});
+				bool isInputDecide = gameInputManager.call<bool>("isLauncherInputSuccess", app::LauncherInputKey::KEY::DECIDE);
 				if (isInputDecide && menuItem->onEnter())
 				{
 					Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
-					soundMilkyManager.call(
-						"playSeById(System.UInt16)",
-						{
-							(void *)(intptr_t)app::sound::SoundMilkyDefine::SeID::LAUNCHER_OK,
-						});
+					soundMilkyManager.call("playSeById", app::sound::SoundMilkyDefine::SeID::LAUNCHER_OK);
 
 					return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
 				}

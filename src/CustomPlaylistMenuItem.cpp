@@ -96,7 +96,7 @@ Object CustomPlaylistMenuItem::loadFavoritesList(const std::filesystem::path &fi
 			}
 
 			// If object was deserialized, add to the list
-			favoritesList.call("Add(app.GUILauncherMusicPlayer.MusicInfo)", {musicInfo});
+			favoritesList.call("Add", musicInfo);
 		}
 	}
 
@@ -221,13 +221,7 @@ bool CustomPlaylistMenuItem::onEnter()
 	}
 
 	Object launcher = getSingleton("app.Launcher");
-	launcher.call(
-		"showLoadingGUI(app.LauncherFadeUserData.FadeUsage, System.Boolean, System.Boolean)",
-		{
-			(void *)(intptr_t)app::LauncherFadeUserData::FadeUsage::GalleryToMusicPlayer2Way,
-			(void *)(intptr_t)false,
-			(void *)(intptr_t)false,
-		});
+	launcher.call("showLoadingGUI", app::LauncherFadeUserData::FadeUsage::GalleryToMusicPlayer2Way, false, false);
 
 	m_state = State::OpeningMusicPlayer;
 	return true;
@@ -242,7 +236,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 	case State::OpeningMusicPlayer:
 	{
 		Object launcher = getSingleton("app.Launcher");
-		bool isFadeInAnimEnd = launcher["loadingGuiBehavior"].call<bool>("isFadeInAnimEnd()");
+		bool isFadeInAnimEnd = launcher["loadingGuiBehavior"].call<bool>("isFadeInAnimEnd");
 		if (isFadeInAnimEnd)
 		{
 			// set DrawSelf = false
@@ -252,7 +246,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 			installHooks();
 
 			// call openMusicPlayer()
-			launcher.call("openMusicPlayer()");
+			launcher.call("openMusicPlayer");
 
 			m_state = State::InMusicPlayer;
 		}
@@ -261,11 +255,11 @@ bool CustomPlaylistMenuItem::onUpdate()
 	case State::InMusicPlayer:
 	{
 		Object launcher = getSingleton("app.Launcher");
-		bool isMusicPlayerEnd = launcher.call<bool>("isMusicPlayerEnd()");
+		bool isMusicPlayerEnd = launcher.call<bool>("isMusicPlayerEnd");
 		if (isMusicPlayerEnd)
 		{
 			// call closeMusicPlayer()
-			launcher.call("closeMusicPlayer()");
+			launcher.call("closeMusicPlayer");
 
 			uninstallHooks();
 
@@ -273,11 +267,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 			launcher["guiBehaviors"][app::Launcher::LauncherGUIId::Option]["GameObject"].set<bool>("DrawSelf", true);
 
 			// call hideLoadingGUIIfShowed()
-			launcher.call(
-				"hideLoadingGUIIfShowed(System.Boolean)",
-				{
-					(void *)(intptr_t)false,
-				});
+			launcher.call("hideLoadingGUIIfShowed", false);
 
 			// save playlists
 			saveFavoritesList(s_activeInstance->m_customPlaylistFileName, m_customPlaylist);

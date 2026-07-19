@@ -87,7 +87,7 @@ bool MusicSystemMod::playBgm(Object srcObj, std::uint16_t bgmId, bool isArranged
 	case BgmSeries::MMSFLC_DLC:
 	{
 		// Check DLC owned and loaded
-		if (!getSingleton("app.DLCContentsManager").call<bool>("getHasDLC", {(void *)(intptr_t)std::to_underlying(app::DLCContentsManager::DLC_TYPE::DLC01)}))
+		if (!getSingleton("app.DLCContentsManager").call<bool>("getHasDLC", app::DLCContentsManager::DLC_TYPE::DLC01))
 		{
 			return false;
 		}
@@ -102,7 +102,7 @@ bool MusicSystemMod::playBgm(Object srcObj, std::uint16_t bgmId, bool isArranged
 	}
 	case BgmSeries::MMBN_DLC:
 	{
-		if (!getSingleton("app.DLCContentsManager").call<bool>("getHasDLC", {(void *)(intptr_t)std::to_underlying(app::DLCContentsManager::DLC_TYPE::DLC02)}))
+		if (!getSingleton("app.DLCContentsManager").call<bool>("getHasDLC", app::DLCContentsManager::DLC_TYPE::DLC02))
 		{
 			return false;
 		}
@@ -121,19 +121,17 @@ bool MusicSystemMod::playBgm(Object srcObj, std::uint16_t bgmId, bool isArranged
 
 	container.call(
 		"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
-		{
-			(void *)(intptr_t)triggerId,
-			srcObj,
-			nullptr,
-			(void *)(intptr_t)0xFFFFFFFF,
-			(void *)(intptr_t)false,
-			(void *)(intptr_t)0,
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr,
-			nullptr,
-		});
+		triggerId,
+		srcObj,
+		nullptr,
+		0xFFFFFFFF,
+		false,
+		0,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr);
 
 	if (!canArranged)
 	{

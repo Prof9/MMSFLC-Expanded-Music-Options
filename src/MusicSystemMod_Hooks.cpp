@@ -40,12 +40,7 @@ void MusicSystemMod::installHooks()
 			{
 				std::uint32_t stopTriggerId = sound["_BgmSetting"].get<std::uint32_t>("DefaultStopTriggerId");
 
-				sound.call(
-					"coreStopBgm",
-					{
-						(void *)(intptr_t)stopTriggerId,
-						(void *)(intptr_t)playerId,
-					});
+				sound.call("coreStopBgm", stopTriggerId, playerId);
 
 				s_corePlayBgm_retVal = 0;
 				s_corePlayBgm_skip = true;
@@ -56,27 +51,25 @@ void MusicSystemMod::installHooks()
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
 
-				sound["_Manager"].call("set_EnableBgmArrange", {(void *)(intptr_t)false});
+				sound["_Manager"].set<bool>("EnableBgmArrange", false);
 
 				sound["_ResidentContainer"].call(
 					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
-					{
-						(void *)(intptr_t)triggerId,
-						playerObject,
-						nullptr,
-						(void *)(intptr_t)0xFFFFFFFF,
-						(void *)(intptr_t)false,
-						(void *)(intptr_t)0,
-						(void *)(intptr_t)0,
-						nullptr,
-						nullptr,
-						nullptr,
-						nullptr,
-					});
+					triggerId,
+					playerObject,
+					nullptr,
+					0xFFFFFFFF,
+					false,
+					0,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr);
 				playingBgmInfo.set<bool>("IsPlayOriginalContainer", true);
 				playingBgmInfo.set<bool>("PlayType", 0);
 
-				s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
+				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
 				s_corePlayBgm_skip = true;
 				return true;
 			};
@@ -85,27 +78,25 @@ void MusicSystemMod::installHooks()
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
 
-				sound["_Manager"].call("set_EnableBgmArrange", {(void *)(intptr_t)true});
+				sound["_Manager"].set<bool>("EnableBgmArrange", true);
 
 				sound["_ResidentContainer"].call(
 					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
-					{
-						(void *)(intptr_t)triggerId,
-						playerObject,
-						nullptr,
-						(void *)(intptr_t)0xFFFFFFFF,
-						(void *)(intptr_t)false,
-						(void *)(intptr_t)0,
-						(void *)(intptr_t)0,
-						nullptr,
-						nullptr,
-						nullptr,
-						nullptr,
-					});
+					triggerId,
+					playerObject,
+					nullptr,
+					0xFFFFFFFF,
+					false,
+					0,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr);
 				playingBgmInfo.set<bool>("IsPlayOriginalContainer", true);
 				playingBgmInfo.set<bool>("PlayType", 0);
 
-				s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
+				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
 				s_corePlayBgm_skip = true;
 				return true;
 			};
@@ -176,29 +167,27 @@ void MusicSystemMod::installHooks()
 					break;
 				}
 
-				sound["_Manager"].call("set_EnableBgmArrange", {(void *)(intptr_t)isArranged});
+				sound["_Manager"].set<bool>("EnableBgmArrange", isArranged);
 
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
 				sound["_ResidentContainer"].call(
 					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
-					{
-						(void *)(intptr_t)triggerId,
-						playerObject,
-						nullptr,
-						(void *)(intptr_t)0xFFFFFFFF,
-						(void *)(intptr_t)false,
-						(void *)(intptr_t)0,
-						(void *)(intptr_t)0,
-						nullptr,
-						nullptr,
-						nullptr,
-						nullptr,
-					});
+					triggerId,
+					playerObject,
+					nullptr,
+					0xFFFFFFFF,
+					false,
+					0,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr);
 				playingBgmInfo.set<bool>("IsPlayOriginalContainer", true);
 				playingBgmInfo.set<bool>("PlayType", 0);
 
-				s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
+				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
 				s_corePlayBgm_skip = true;
 				return true;
 			};
@@ -224,7 +213,10 @@ void MusicSystemMod::installHooks()
 
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
-				MusicSystemMod::playBgm(playerObject, musicId, isArrange);
+				if (!MusicSystemMod::playBgm(playerObject, musicId, isArrange))
+				{
+					return false;
+				}
 
 				Type soundMilkyDefine = getType("app.sound.SoundMilkyDefine");
 				std::uint8_t series = soundMilkyDefine.call<std::uint8_t>("getMusicPlayerBgmDefine_Series", musicId);
@@ -233,7 +225,7 @@ void MusicSystemMod::installHooks()
 				playingBgmInfo.set<std::uint8_t>("FavoriteBgmId_Index", bgmSettingIndex);
 				playingBgmInfo.set<std::uint8_t>("PlayType", getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Favorite"));
 
-				s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Favorite");
+				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Favorite");
 				s_corePlayBgm_skip = true;
 				return true;
 			};
@@ -252,21 +244,19 @@ void MusicSystemMod::installHooks()
 
 				container.call(
 					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
-					{
-						(void *)(intptr_t)musicSettingInfo.NewTriggerID,
-						playerObject,
-						nullptr,
-						(void *)(intptr_t)0xFFFFFFFF,
-						(void *)(intptr_t)false,
-						(void *)(intptr_t)0,
-						(void *)(intptr_t)0,
-						nullptr,
-						nullptr,
-						nullptr,
-						nullptr,
-					});
+					musicSettingInfo.NewTriggerID,
+					playerObject,
+					nullptr,
+					0xFFFFFFFF,
+					false,
+					0,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr);
 
-				s_corePlayBgm_retVal = (void *)(intptr_t)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
+				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
 				s_corePlayBgm_skip = true;
 				return true;
 			};
@@ -276,7 +266,7 @@ void MusicSystemMod::installHooks()
 			{
 				if (musicSettingInfo.RequiredDLC != app::DLCContentsManager::DLC_TYPE::INVALID)
 				{
-					if (!dlcContentsManager.call<bool>("getHasDLC", {(void *)(intptr_t)std::to_underlying(musicSettingInfo.RequiredDLC)}))
+					if (!dlcContentsManager.call<bool>("getHasDLC", musicSettingInfo.RequiredDLC))
 					{
 						continue;
 					}
@@ -368,7 +358,7 @@ void MusicSystemMod::installHooks()
 			bool isArranged = playerId < s_isPlayerArranged.size() ? s_isPlayerArranged[playerId] : false;
 
 			s_disableEnableBgmArrangeHook = true;
-			sound["_Manager"].call("set_EnableBgmArrange", {(void *)(intptr_t)isArranged});
+			sound["_Manager"].set<bool>("EnableBgmArrange", isArranged);
 			s_disableEnableBgmArrangeHook = false;
 
 			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
