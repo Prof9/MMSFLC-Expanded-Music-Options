@@ -38,18 +38,19 @@ static void setFieldPointer(T *pointer, T value)
 template <>
 static void setFieldPointer<void *>(void **pointer, void *value)
 {
-	// Update reference count for old value
 	void *oldValue = *pointer;
-	if (oldValue != nullptr)
-	{
-		((reframework::API::ManagedObject *)oldValue)->release();
-	}
+	*pointer = value;
 
 	// Update reference count for new value
-	*pointer = value;
 	if (value != nullptr)
 	{
 		((reframework::API::ManagedObject *)value)->add_ref();
+	}
+
+	// Update reference count for old value
+	if (oldValue != nullptr)
+	{
+		((reframework::API::ManagedObject *)oldValue)->release();
 	}
 }
 

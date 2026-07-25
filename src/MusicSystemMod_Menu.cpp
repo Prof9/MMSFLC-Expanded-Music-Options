@@ -26,7 +26,7 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_COMMON = {
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysArranged),
 	 .m_descriptionGuid = L"7fd7bc1a-88ee-4631-bbec-a731d86deed5"_guid},
 	{.m_nameGuid = L"c12ba05a-7bbc-4e46-b510-53a361c262f4"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix),
+	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::PreferredMix),
 	 .m_descriptionGuid = L"501e2a85-77ba-4f87-a7a1-b672e5674e54"_guid},
 	{.m_nameGuid = L"36fac9cf-514b-45f7-b015-b5b54b4817c3"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Playlist),
@@ -49,7 +49,7 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_NORMAL_BATTLE = {
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysArranged),
 	 .m_descriptionGuid = L"7fd7bc1a-88ee-4631-bbec-a731d86deed5"_guid},
 	{.m_nameGuid = L"c12ba05a-7bbc-4e46-b510-53a361c262f4"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix),
+	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::PreferredMix),
 	 .m_descriptionGuid = L"501e2a85-77ba-4f87-a7a1-b672e5674e54"_guid},
 	{.m_nameGuid = L"36fac9cf-514b-45f7-b015-b5b54b4817c3"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Playlist),
@@ -57,15 +57,15 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_NORMAL_BATTLE = {
 	{.m_nameGuid = L"c5451ab5-0f50-45c0-8368-de71c13aa44b"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Favorites),
 	 .m_descriptionGuid = L"99b3bbca-167c-416c-aa9d-1349dac7b784"_guid},
-	{.m_nameGuid = L"0c174efc-4ff0-42ea-98d2-c0956ca6c5ba"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Field),
-	 .m_descriptionGuid = L"53ff37ca-a276-470c-b310-8c0ad3ce1349"_guid},
-	{.m_nameGuid = L"c7e77ba9-a882-4d37-a11b-e5900d140d51"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::FieldOriginal),
-	 .m_descriptionGuid = L"18b51d97-8636-4bb6-b6b7-4e5a2c46afd5"_guid},
-	{.m_nameGuid = L"91937c25-8452-45d8-a735-aa569695badb"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::FieldArranged),
-	 .m_descriptionGuid = L"bdbd21a1-9136-4639-bf6a-bda1fdc18e64"_guid},
+	// {.m_nameGuid = L"0c174efc-4ff0-42ea-98d2-c0956ca6c5ba"_guid,
+	//  .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Field),
+	//  .m_descriptionGuid = L"53ff37ca-a276-470c-b310-8c0ad3ce1349"_guid},
+	// {.m_nameGuid = L"c7e77ba9-a882-4d37-a11b-e5900d140d51"_guid,
+	//  .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::FieldOriginal),
+	//  .m_descriptionGuid = L"18b51d97-8636-4bb6-b6b7-4e5a2c46afd5"_guid},
+	// {.m_nameGuid = L"91937c25-8452-45d8-a735-aa569695badb"_guid,
+	//  .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::FieldArranged),
+	//  .m_descriptionGuid = L"bdbd21a1-9136-4639-bf6a-bda1fdc18e64"_guid},
 };
 const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_WINNER_LOSER = {
 	{.m_nameGuid = L"c564c411-216f-498f-9c53-459408c675d5"_guid,
@@ -81,7 +81,7 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_WINNER_LOSER = {
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysArranged),
 	 .m_descriptionGuid = L"7fd7bc1a-88ee-4631-bbec-a731d86deed5"_guid},
 	{.m_nameGuid = L"c12ba05a-7bbc-4e46-b510-53a361c262f4"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::PreferMix),
+	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::PreferredMix),
 	 .m_descriptionGuid = L"501e2a85-77ba-4f87-a7a1-b672e5674e54"_guid},
 	{.m_nameGuid = L"36fac9cf-514b-45f7-b015-b5b54b4817c3"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Playlist),
@@ -89,9 +89,9 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_WINNER_LOSER = {
 	{.m_nameGuid = L"c5451ab5-0f50-45c0-8368-de71c13aa44b"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Favorites),
 	 .m_descriptionGuid = L"99b3bbca-167c-416c-aa9d-1349dac7b784"_guid},
-	{.m_nameGuid = L"0a1089a5-f79f-45d4-9329-f159d2d4fdc2"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Battle),
-	 .m_descriptionGuid = L"22089bb3-1ed9-498f-bb7b-b10063cdc380"_guid},
+	// {.m_nameGuid = L"0a1089a5-f79f-45d4-9329-f159d2d4fdc2"_guid,
+	//  .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Battle),
+	//  .m_descriptionGuid = L"22089bb3-1ed9-498f-bb7b-b10063cdc380"_guid},
 };
 const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_MAIN_MENU = {
 	{.m_nameGuid = L"c564c411-216f-498f-9c53-459408c675d5"_guid,
@@ -116,7 +116,7 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_DLC_BGM = {
 
 void MusicSystemMod::buildMenu()
 {
-	CustomPlaylistMenuItem::setPreferMixPlaylistFileName(CONFIG_FILE("playlist_prefer_mix.bin"));
+	CustomPlaylistMenuItem::setPreferredMixPlaylistFileName(CONFIG_FILE("playlist_preferred_mix.bin"));
 
 	MusicSystemMod::Settings defaultSettings;
 

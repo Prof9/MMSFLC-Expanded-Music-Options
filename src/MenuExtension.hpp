@@ -46,8 +46,25 @@ protected:
 	/// @brief New menu items added by this menu extension instance.
 	std::vector<std::shared_ptr<MenuItem>> m_newMenuItems;
 
+	// This will not work anymore once we start extending different types of menus
 	/// @brief All active menu items across all instances.
 	static inline std::vector<std::shared_ptr<MenuItem>> s_activeMenuItems;
+	static inline std::int32_t s_newMenuItemsIdx = -1;
+
+	static std::shared_ptr<MenuItem> getCustomMenuItem(std::size_t idx)
+	{
+		std::shared_ptr<MenuItem> menuItem = nullptr;
+		if (s_newMenuItemsIdx >= 0 && idx >= s_newMenuItemsIdx)
+		{
+			auto menuItemIter = s_activeMenuItems.begin();
+			std::ranges::advance(menuItemIter, idx - s_newMenuItemsIdx);
+			if (menuItemIter != s_activeMenuItems.end())
+			{
+				menuItem = *menuItemIter;
+			}
+		}
+		return menuItem;
+	}
 
 private:
 	/// @brief Tracks all instances of this type of menu extension.
@@ -95,8 +112,17 @@ private:
 		// Hook method which is called each time the Settings menu updates
 		s_hooks.emplace_back(REFrameworkHelper::hook(
 			"app.GUILauncherOption.update()",
-			[](auto...)
+			[](int argc, void **argv, auto...)
 			{
+				REFrameworkHelper::Object option = REFrameworkHelper::Object(argv[1]);
+
+				// reload operations guide if it doesn't exist
+				// (operations guide may be removed after entering a submenu)
+				if (REFrameworkHelper::getSingleton("app.Launcher").call<REFrameworkHelper::Object>("get__OperationGuideComponent") == nullptr)
+				{
+					option.call("openOperationGuide");
+				}
+
 				// call onUpdate() on all active menu items
 				bool doUpdate = true;
 				for (std::shared_ptr<MenuItem> menuItem : s_activeMenuItems)

@@ -112,8 +112,8 @@ void MusicSystemMod::installHooks()
 				case CustomPlaylistMenuItem::Option::AlwaysArranged:
 					isArranged = true;
 					break;
-				case CustomPlaylistMenuItem::Option::PreferMix:
-					Object playlist = CustomPlaylistMenuItem::getPreferMixPlaylist();
+				case CustomPlaylistMenuItem::Option::PreferredMix:
+					Object playlist = CustomPlaylistMenuItem::getPreferredMixPlaylist();
 					Object musicPlayerBgmDefineList = getType("app.sound.SoundMilkyDefine")["MusicPlayerBgmDefineList"];
 					Object bgmSettingDataList = sound["_Manager"]["_BgmSettingDataList"];
 					Type musicPlayerBgmDefineType = getType("app.sound.SoundMilkyDefine.MusicPlayerBgmDefine");
@@ -299,7 +299,7 @@ void MusicSystemMod::installHooks()
 							break;
 						case CustomPlaylistMenuItem::Option::AlwaysOriginal:
 						case CustomPlaylistMenuItem::Option::AlwaysArranged:
-						case CustomPlaylistMenuItem::Option::PreferMix:
+						case CustomPlaylistMenuItem::Option::PreferredMix:
 							replaced = selectMix(musicSettingInfo);
 							break;
 						case CustomPlaylistMenuItem::Option::Playlist:

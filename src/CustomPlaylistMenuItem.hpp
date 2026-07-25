@@ -20,7 +20,7 @@ struct CustomPlaylistMenuItem : MenuItem
 		MusicOff,
 		AlwaysOriginal,
 		AlwaysArranged,
-		PreferMix,
+		PreferredMix,
 		Playlist,
 		Favorites,
 		Field,
@@ -33,24 +33,25 @@ public:
 	CustomPlaylistMenuItem(const std::filesystem::path &playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<MenuItem::Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue = 0);
 	virtual ~CustomPlaylistMenuItem();
 
+	bool canEnter();
 	bool onEnter();
 	bool onUpdate();
 
 	REFrameworkHelper::Object getCustomPlaylist() const;
 	void setCustomPlaylist(REFrameworkHelper::Object playlist);
 
-	static REFrameworkHelper::Object getPreferMixPlaylist();
-	static void setPreferMixPlaylist(REFrameworkHelper::Object playlist);
+	static REFrameworkHelper::Object getPreferredMixPlaylist();
+	static void setPreferredMixPlaylist(REFrameworkHelper::Object playlist);
 
 	static REFrameworkHelper::Object loadFavoritesList(const std::filesystem::path &fileName);
 	static bool saveFavoritesList(const std::filesystem::path &fileName, REFrameworkHelper::Object favoritesList);
 
-	static const std::filesystem::path &getPreferMixPlaylistFileName();
-	static void setPreferMixPlaylistFileName(const std::filesystem::path &fileName);
+	static const std::filesystem::path &getPreferredMixPlaylistFileName();
+	static void setPreferredMixPlaylistFileName(const std::filesystem::path &fileName);
 
 protected:
-	static void installHooks();
-	static void uninstallHooks();
+	static void installHooksMusicPlayer();
+	static void uninstallHooksMusicPlayer();
 
 	static std::size_t countNewAlbumFlags();
 
@@ -65,9 +66,9 @@ private:
 	// Static state
 	static inline CustomPlaylistMenuItem *s_activeInstance;
 
-	static inline std::filesystem::path s_PreferMixPlaylistFileName;
-	static inline REFrameworkHelper::Object s_PreferMixPlaylist;
+	static inline std::filesystem::path s_PreferredMixPlaylistFileName;
+	static inline REFrameworkHelper::Object s_PreferredMixPlaylist;
 
 	// Hooks
-	static inline std::vector<REFrameworkHelper::HookRef> s_hooks;
+	static inline std::vector<REFrameworkHelper::HookRef> s_hooksMusicPlayer;
 };

@@ -39,6 +39,11 @@ std::int32_t MenuItem::getCursor() const
 	return 0;
 }
 
+bool MenuItem::canEnter()
+{
+	return false;
+}
+
 bool MenuItem::onEnter()
 {
 	return false;

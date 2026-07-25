@@ -134,26 +134,26 @@ void AudioMenuExtension::installHooks()
 			Object cursorNameListList = launcherOptionSound["_CursolNameList"];
 
 			// If this is a reload, do not update stuff we don't need to
-			if (s_newSoundOptionsIdx < 0)
+			if (s_newMenuItemsIdx < 0)
 			{
 				// This is initial load, get original length of list
-				s_newSoundOptionsIdx = nameList.get<std::int32_t>("Length");
+				s_newMenuItemsIdx = nameList.get<std::int32_t>("Length");
 
-				Object newNameList = createArray("System.Guid", s_newSoundOptionsIdx + numNewMenuItems);
-				Object newGuidList = createArray("System.Guid", s_newSoundOptionsIdx + numNewMenuItems);
-				Object newCursorIndexList = createArray("System.Int32", s_newSoundOptionsIdx + numNewMenuItems);
-				Object newCursorMaxList = createArray("System.Int32", s_newSoundOptionsIdx + numNewMenuItems);
+				Object newNameList = createArray("System.Guid", s_newMenuItemsIdx + numNewMenuItems);
+				Object newGuidList = createArray("System.Guid", s_newMenuItemsIdx + numNewMenuItems);
+				Object newCursorIndexList = createArray("System.Int32", s_newMenuItemsIdx + numNewMenuItems);
+				Object newCursorMaxList = createArray("System.Int32", s_newMenuItemsIdx + numNewMenuItems);
 
 				// Fill new arrays
 				auto menuItemIter = s_activeMenuItems.begin();
-				for (int i = 0; i < s_newSoundOptionsIdx + numNewMenuItems; ++i)
+				for (int i = 0; i < s_newMenuItemsIdx + numNewMenuItems; ++i)
 				{
 					Guid nameGuid;
 					Guid descriptionGuid;
 					std::int32_t cursorIdx;
 					std::int32_t cursorMax;
 
-					if (i < s_newSoundOptionsIdx)
+					if (i < s_newMenuItemsIdx)
 					{
 						nameGuid = nameList.get<Guid>(i);
 						descriptionGuid = guidList.get<Guid>(i);
@@ -179,23 +179,23 @@ void AudioMenuExtension::installHooks()
 					newCursorMaxList.set<std::int32_t>(i, cursorMax);
 				}
 
-				launcherOptionSound.set("NameList", newNameList);
-				launcherOptionSound.set("GuidList", newGuidList);
-				launcherOptionSound.set("_CursolIndex", newCursorIndexList);
-				launcherOptionSound.set("CursolMax", newCursorMaxList);
+				launcherOptionSound["NameList"] = newNameList;
+				launcherOptionSound["GuidList"] = newGuidList;
+				launcherOptionSound["_CursolIndex"] = newCursorIndexList;
+				launcherOptionSound["CursolMax"] = newCursorMaxList;
 			}
 
 			// Cursor name list needs to be rebuilt each time
 			{
-				Object newCursorNameListList = createArray("System.Array", s_newSoundOptionsIdx + numNewMenuItems);
+				Object newCursorNameListList = createArray("System.Array", s_newMenuItemsIdx + numNewMenuItems);
 
 				// Fill new arrays
 				auto menuItemIter = s_activeMenuItems.begin();
-				for (int i = 0; i < s_newSoundOptionsIdx + numNewMenuItems; ++i)
+				for (int i = 0; i < s_newMenuItemsIdx + numNewMenuItems; ++i)
 				{
 					Object cursorNameList;
 
-					if (i < s_newSoundOptionsIdx)
+					if (i < s_newMenuItemsIdx)
 					{
 						cursorNameList = cursorNameListList[i];
 					}
@@ -243,7 +243,7 @@ void AudioMenuExtension::installHooks()
 			assert(soundList["BarPath"] == str_scrollBarPath); // if this fails then FLUENT_SCROLL_LIST_OFFSET_BAR_PATH has changed
 
 			// set soundList.ItemCount
-			soundList.set<std::int32_t>("ItemCount", s_newSoundOptionsIdx + numNewMenuItems);
+			soundList.set<std::int32_t>("ItemCount", s_newMenuItemsIdx + numNewMenuItems);
 
 			// call soundList.getObject
 			// Technically the game calls getObject(System.String, System.Type),
@@ -251,7 +251,7 @@ void AudioMenuExtension::installHooks()
 			// but we don't care about the strong typing anyway
 			Object fluentScrollBar = soundList.call<Object>("getObject(System.String)", str_scrollBarPath);
 
-			if (s_newSoundOptionsIdx + numNewMenuItems > ITEMS_PER_PAGE)
+			if (s_newMenuItemsIdx + numNewMenuItems > ITEMS_PER_PAGE)
 			{
 				Object str_textPrevPath = createString(L"/txt_Prev");
 				Object str_textNextPath = createString(L"/txt_Next");
@@ -337,16 +337,7 @@ void AudioMenuExtension::installHooks()
 			std::int32_t cursorMax = cursorMaxList.get<std::int32_t>(selectedIndex);
 
 			// Get menu item
-			std::shared_ptr<MenuItem> menuItem = nullptr;
-			if (selectedIndex >= s_newSoundOptionsIdx)
-			{
-				auto menuItemIter = s_activeMenuItems.begin();
-				std::ranges::advance(menuItemIter, selectedIndex - s_newSoundOptionsIdx);
-				if (menuItemIter != s_activeMenuItems.end())
-				{
-					menuItem = *menuItemIter;
-				}
-			}
+			std::shared_ptr<MenuItem> menuItem = getCustomMenuItem(selectedIndex);
 
 			// call menu.isUpdateSelectedItem()
 			// returns true if different value chosen for selected item and updates cursorIndex
@@ -399,7 +390,7 @@ void AudioMenuExtension::installHooks()
 				// returns true if key is pressed on item
 				Object gameInputManager = getSingleton("app.GameInputManager");
 				bool isInputDecide = gameInputManager.call<bool>("isLauncherInputSuccess", app::LauncherInputKey::KEY::DECIDE);
-				if (isInputDecide && menuItem->onEnter())
+				if (isInputDecide && menuItem->canEnter() && menuItem->onEnter())
 				{
 					Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
 					soundMilkyManager.call("playSeById", app::sound::SoundMilkyDefine::SeID::LAUNCHER_OK);
@@ -417,7 +408,7 @@ void AudioMenuExtension::installHooks()
 		"app.GUILauncherOption.onDestroy()",
 		[](int argc, void **argv, auto...)
 		{
-			s_newSoundOptionsIdx = -1;
+			s_newMenuItemsIdx = -1;
 
 			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
@@ -428,14 +419,14 @@ void AudioMenuExtension::installHooks()
 		"app.cLauncherOptionSound.resetSetting()",
 		[](int argc, void **argv, auto...)
 		{
-			assert(s_newSoundOptionsIdx >= 0);
+			assert(s_newMenuItemsIdx >= 0);
 
 			Object launcherOptionSound = Object(argv[1]);
 			Object cursorIndexList = launcherOptionSound["_CursolIndex"];
 			std::int32_t cursorIndexListLength = cursorIndexList.get<std::int32_t>("Length");
 
 			auto menuItemIter = s_activeMenuItems.begin();
-			for (std::size_t i = s_newSoundOptionsIdx; menuItemIter != s_activeMenuItems.end(); ++i)
+			for (std::size_t i = s_newMenuItemsIdx; menuItemIter != s_activeMenuItems.end(); ++i)
 			{
 				// get new item
 				std::shared_ptr<MenuItem> menuItem = *menuItemIter;
@@ -446,6 +437,81 @@ void AudioMenuExtension::installHooks()
 
 				++menuItemIter;
 			}
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
+	s_hooks.emplace_back(hook(
+		"app.GUILauncherOperationGuide.setOperationGuide",
+		[](int argc, void **argv, auto...)
+		{
+			Object operationGuide = Object(argv[1]);
+			Object indexList = Object(argv[2]);
+
+			Object launcher = getSingleton("app.Launcher");
+			// Check if we need to add Edit List to the operation guide
+			Object option = launcher.call<Object>("get__OptionComponent");
+
+			// If we are not in options, skip
+			if (option == nullptr || s_newMenuItemsIdx < 0)
+			{
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+
+			Guid editListGuid = L"079c9622-16d9-4871-b199-c25eb73196c8"_guid;
+			std::int32_t editListIdx = -1;
+
+			// Check if Edit List is already added
+			Object guideDataList = operationGuide["_OperationGuideData"]["GuideDatas"];
+			std::int32_t guideDataListLength = guideDataList.get<std::int32_t>("Length");
+			for (editListIdx = 0; editListIdx < guideDataListLength; editListIdx++)
+			{
+				Guid messageId = guideDataList[editListIdx].get<Guid>("MessageId");
+				if (messageId == editListGuid)
+				{
+					break;
+				}
+			}
+
+			// Add Edit List to operation guide
+			if (editListIdx >= guideDataListLength)
+			{
+				Object newGuideDataList = createArray("app.OperationGuideData", guideDataListLength + 1);
+
+				for (std::int32_t i = 0; i < guideDataListLength; i++)
+				{
+					newGuideDataList[i] = guideDataList[i];
+				}
+
+				Object editListData = createObject("app.OperationGuideData");
+				editListData.call(".ctor");
+				editListData.set<Guid>("_MessageId", editListGuid);
+
+				newGuideDataList[editListIdx] = editListData;
+				operationGuide["_OperationGuideData"]["_GuideDatas"] = newGuideDataList;
+			}
+
+			// If Audio settings is open
+			if ((app::GUILauncherOption::MENU_TYPE)option.get<std::int32_t>("_CurrentMenuType") != app::GUILauncherOption::MENU_TYPE::SOUND)
+			{
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+			// If we are inside Audio settings
+			if ((app::GUILauncherOption::Routine)option.get<std::int32_t>("_Routine") != app::GUILauncherOption::Routine::UPDATE_MENU)
+			{
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+
+			// Check if current menu item is enterable
+			std::shared_ptr<MenuItem> menuItem = getCustomMenuItem(option["_CurrentMenu"].get<std::int32_t>("_SelectedIndex"));
+			if (menuItem == nullptr || !menuItem->canEnter())
+			{
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+
+			// Add Edit List to the operation guide
+			indexList.call("Add", editListIdx);
 
 			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},

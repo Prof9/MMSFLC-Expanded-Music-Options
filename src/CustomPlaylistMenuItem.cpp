@@ -29,23 +29,23 @@ void CustomPlaylistMenuItem::setCustomPlaylist(Object playlist)
 	}
 }
 
-Object CustomPlaylistMenuItem::getPreferMixPlaylist()
+Object CustomPlaylistMenuItem::getPreferredMixPlaylist()
 {
-	return s_PreferMixPlaylist;
+	return s_PreferredMixPlaylist;
 }
 
-void CustomPlaylistMenuItem::setPreferMixPlaylist(Object playlist)
+void CustomPlaylistMenuItem::setPreferredMixPlaylist(Object playlist)
 {
-	if (s_PreferMixPlaylist)
+	if (s_PreferredMixPlaylist)
 	{
-		s_PreferMixPlaylist.m_object->release();
+		s_PreferredMixPlaylist.m_object->release();
 	}
 
-	s_PreferMixPlaylist = playlist;
+	s_PreferredMixPlaylist = playlist;
 
-	if (s_PreferMixPlaylist)
+	if (s_PreferredMixPlaylist)
 	{
-		s_PreferMixPlaylist.m_object->add_ref();
+		s_PreferredMixPlaylist.m_object->add_ref();
 	}
 }
 
@@ -175,22 +175,22 @@ bool CustomPlaylistMenuItem::saveFavoritesList(const std::filesystem::path &file
 	return true;
 }
 
-const std::filesystem::path &CustomPlaylistMenuItem::getPreferMixPlaylistFileName()
+const std::filesystem::path &CustomPlaylistMenuItem::getPreferredMixPlaylistFileName()
 {
-	return s_PreferMixPlaylistFileName;
+	return s_PreferredMixPlaylistFileName;
 }
-void CustomPlaylistMenuItem::setPreferMixPlaylistFileName(const std::filesystem::path &fileName)
+void CustomPlaylistMenuItem::setPreferredMixPlaylistFileName(const std::filesystem::path &fileName)
 {
-	s_PreferMixPlaylistFileName = fileName;
+	s_PreferredMixPlaylistFileName = fileName;
 }
 
 CustomPlaylistMenuItem::CustomPlaylistMenuItem(const std::filesystem::path &playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<MenuItem::Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue)
 	: MenuItem::MenuItem(nameGuid, descriptionGuid, options, valuePtr, defaultValue), m_customPlaylistFileName(playlistFileName)
 {
 	// Load original/arranged playlist if this is the first instance
-	if (!s_PreferMixPlaylist)
+	if (!s_PreferredMixPlaylist)
 	{
-		setPreferMixPlaylist(loadFavoritesList(s_PreferMixPlaylistFileName));
+		setPreferredMixPlaylist(loadFavoritesList(s_PreferredMixPlaylistFileName));
 	}
 
 	// Load custom playlist
@@ -202,19 +202,41 @@ CustomPlaylistMenuItem::~CustomPlaylistMenuItem()
 	setCustomPlaylist((void *)nullptr);
 }
 
-bool CustomPlaylistMenuItem::onEnter()
+bool CustomPlaylistMenuItem::canEnter()
 {
-	if (m_state != State::Idle)
+	switch (m_state)
 	{
+	case State::Idle:
+	case State::OpeningMusicPlayer:
+		// Return true when opening as well
+		// Otherwise Edit List disappears from operation guide
+		break;
+	default:
 		return false;
 	}
 
 	// Check if the current value is a playlist that can be edited
 	switch ((CustomPlaylistMenuItem::Option)getValue())
 	{
-	case CustomPlaylistMenuItem::Option::PreferMix:
+	case CustomPlaylistMenuItem::Option::PreferredMix:
 	case CustomPlaylistMenuItem::Option::Playlist:
 	case CustomPlaylistMenuItem::Option::Favorites:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool CustomPlaylistMenuItem::onEnter()
+{
+	if (!this->canEnter())
+	{
+		return false;
+	}
+
+	switch (m_state)
+	{
+	case State::Idle:
 		break;
 	default:
 		return false;
@@ -243,7 +265,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 			launcher["guiBehaviors"][app::Launcher::LauncherGUIId::Option]["GameObject"].set<bool>("DrawSelf", false);
 
 			s_activeInstance = this;
-			installHooks();
+			installHooksMusicPlayer();
 
 			// call openMusicPlayer()
 			launcher.call("openMusicPlayer");
@@ -261,7 +283,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 			// call closeMusicPlayer()
 			launcher.call("closeMusicPlayer");
 
-			uninstallHooks();
+			uninstallHooksMusicPlayer();
 
 			// set DrawSelf = true
 			launcher["guiBehaviors"][app::Launcher::LauncherGUIId::Option]["GameObject"].set<bool>("DrawSelf", true);
@@ -271,7 +293,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 
 			// save playlists
 			saveFavoritesList(s_activeInstance->m_customPlaylistFileName, m_customPlaylist);
-			saveFavoritesList(s_PreferMixPlaylistFileName, s_PreferMixPlaylist);
+			saveFavoritesList(s_PreferredMixPlaylistFileName, s_PreferredMixPlaylist);
 
 			s_activeInstance = nullptr;
 			m_state = State::Idle;
@@ -284,12 +306,12 @@ bool CustomPlaylistMenuItem::onUpdate()
 }
 
 /// @brief Install all hooks used for custom playlist editor
-void CustomPlaylistMenuItem::installHooks()
+void CustomPlaylistMenuItem::installHooksMusicPlayer()
 {
 	// Hook method which is called during music player start
 	// immediately after setting favorites list and new album flags
 	static Object launcherMusicPlayer;
-	s_hooks.emplace_back(hook(
+	s_hooksMusicPlayer.emplace_back(hook(
 		"app.GUILauncherMusicPlayer.setAlbumTrackNum",
 		[](int argc, void **argv, auto...)
 		{
@@ -310,8 +332,8 @@ void CustomPlaylistMenuItem::installHooks()
 			case CustomPlaylistMenuItem::Option::Playlist:
 				launcherMusicPlayer.set("favoriteMusicList", s_activeInstance->m_customPlaylist);
 				break;
-			case CustomPlaylistMenuItem::Option::PreferMix:
-				launcherMusicPlayer.set("favoriteMusicList", s_PreferMixPlaylist);
+			case CustomPlaylistMenuItem::Option::PreferredMix:
+				launcherMusicPlayer.set("favoriteMusicList", s_PreferredMixPlaylist);
 				break;
 			default:
 				assert(0);
@@ -319,10 +341,16 @@ void CustomPlaylistMenuItem::installHooks()
 		}));
 
 	// Hook method which saves launcher data
-	s_hooks.emplace_back(hook(
+	s_hooksMusicPlayer.emplace_back(hook(
 		"app.SaveDataManager.requestSaveUserData_Launcher",
 		[](auto...)
 		{
+			// If we are not editing the favorites list, do a save
+			if (s_activeInstance == nullptr)
+			{
+				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			}
+
 			// If we are editing the actual favorites list, do a save
 			if ((CustomPlaylistMenuItem::Option)s_activeInstance->getValue() == CustomPlaylistMenuItem::Option::Favorites)
 			{
@@ -343,13 +371,13 @@ void CustomPlaylistMenuItem::installHooks()
 }
 
 /// @brief Uninstall all hooks used for custom playlist editor
-void CustomPlaylistMenuItem::uninstallHooks()
+void CustomPlaylistMenuItem::uninstallHooksMusicPlayer()
 {
-	for (HookRef &hook : s_hooks)
+	for (HookRef &hook : s_hooksMusicPlayer)
 	{
 		hook.unhook();
 	}
-	s_hooks.clear();
+	s_hooksMusicPlayer.clear();
 }
 
 /// @brief Count number of new album flags which are 1

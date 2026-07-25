@@ -178,7 +178,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"c12ba05a-7bbc-4e46-b510-53a361c262f4"_guid,
 		 {
-			 {via::Language::English, u"Prefer Mix <ICON LAUNCHER_DECIDE>"},
+			 {via::Language::English, u"Preferred Mix <ICON LAUNCHER_DECIDE>"},
 		 }},
 		{L"501e2a85-77ba-4f87-a7a1-b672e5674e54"_guid,
 		 {
@@ -231,5 +231,9 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		{L"22089bb3-1ed9-498f-bb7b-b10063cdc380"_guid,
 		 {
 			 {via::Language::English, u"Play the background music from the Battle Screen uninterrupted."},
+		 }},
+		{L"079c9622-16d9-4871-b199-c25eb73196c8"_guid,
+		 {
+			 {via::Language::English, u"<ICON LAUNCHER_DECIDE> Edit List"},
 		 }},
 };

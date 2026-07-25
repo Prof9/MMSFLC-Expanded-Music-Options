@@ -28,9 +28,6 @@ private:
 	// Constants
 	static const inline size_t ITEMS_PER_PAGE = 6;
 
-	// Static state
-	static inline int s_newSoundOptionsIdx = -1; // Also indicates if menu has been resized
-
 	// Hooks
 	static inline std::vector<REFrameworkHelper::HookRef> s_hooks;
 };

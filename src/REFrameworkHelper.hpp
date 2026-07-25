@@ -53,6 +53,12 @@ namespace REFrameworkHelper
 				return value;
 			}
 
+			const ObjectGetterSetter &operator=(const ObjectGetterSetter &value) const
+			{
+				setInternal(value.getInternal());
+				return value;
+			}
+
 			bool operator==(T const &b) const
 			{
 				return getInternal() == b;

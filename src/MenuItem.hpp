@@ -38,6 +38,7 @@ public:
 	void setValue(std::int32_t value) const;
 	std::int32_t getCursor() const;
 
+	virtual bool canEnter();
 	virtual bool onEnter();
 	virtual bool onUpdate();
 };
