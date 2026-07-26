@@ -15,20 +15,6 @@
 using namespace REFrameworkHelper;
 
 template <typename T>
-static void *toInvokeArg(T arg)
-{
-	void *buf = 0;
-	memcpy_s(&buf, sizeof(buf), &arg, sizeof(arg));
-	return buf;
-}
-
-template <>
-static void *toInvokeArg<ValueTypeArray>(ValueTypeArray arg)
-{
-	return arg.data();
-}
-
-template <typename T>
 static void setFieldPointer(T *pointer, T value)
 {
 	*pointer = value;
@@ -116,7 +102,7 @@ void Object::setField(std::string_view fieldName, T value, bool isValueType) con
 	reframework::API::Method *setter = type->find_method(funcName);
 	if (setter != nullptr)
 	{
-		setter->invoke(m_object, {toInvokeArg<T>(value)});
+		setter->invoke(m_object, {toCallArg<T>(value)});
 		return;
 	}
 
@@ -179,7 +165,7 @@ void Object::setArray(size_t idx, T value) const
 	reframework::API::Method *setter = type->find_method("set_Item");
 	if (setter != nullptr)
 	{
-		setter->invoke(m_object, {(void *)(uintptr_t)idx, toInvokeArg<T>(value)});
+		setter->invoke(m_object, {(void *)(uintptr_t)idx, toCallArg<T>(value)});
 		return;
 	}
 

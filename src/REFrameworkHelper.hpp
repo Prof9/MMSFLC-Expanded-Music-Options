@@ -12,6 +12,27 @@
 namespace REFrameworkHelper
 {
 	typedef decltype(reframework::InvokeRet::bytes) ValueTypeArray;
+	struct Object;
+	struct Type;
+
+	template <typename T>
+	void *toCallArg(T arg)
+	{
+		if constexpr (std::is_convertible_v<std::decay_t<T>, Object>)
+		{
+			return ((Object)arg).m_object;
+		}
+		else if constexpr (std::is_same_v<std::decay_t<T>, ValueTypeArray>)
+		{
+			return arg.data();
+		}
+		else
+		{
+			void *buf = 0;
+			memcpy_s(&buf, sizeof(buf), &arg, sizeof(arg));
+			return buf;
+		}
+	}
 
 	/// @brief Handle for TDB method hooks
 	struct HookRef
@@ -280,13 +301,19 @@ namespace REFrameworkHelper
 		T call(std::string_view funcName, TArgs... args) const
 		{
 			assert(this->m_object != nullptr);
+			auto &api = reframework::API::get();
 
 			reframework::API::TypeDefinition *type = this->m_object->get_type_definition();
 			assert(type != nullptr);
 
 			// Call function
 			reframework::API::Method *function = type->find_method(funcName);
-			if (function != nullptr)
+			if (function->is_static())
+			{
+				api->log_error("call: function {}.{} is static", type->get_full_name(), funcName);
+				assert(0);
+			}
+			else if (function != nullptr)
 			{
 				std::vector<void *> argv;
 				([&]
@@ -303,7 +330,6 @@ namespace REFrameworkHelper
 				}
 			}
 
-			auto &api = reframework::API::get();
 			api->log_error("call: unknown function {}.{}", type->get_full_name(), funcName);
 			assert(0);
 
@@ -356,9 +382,21 @@ namespace REFrameworkHelper
 
 			// Call function
 			reframework::API::Method *function = m_type->find_method(funcName);
+			if (!function->is_static())
+			{
+				api->log_error("call: function {}.{} is not static", m_type->get_full_name(), funcName);
+				assert(0);
+			}
 			if (function != nullptr)
 			{
-				return function->call<T>(api->get_vm_context(), args...);
+				if constexpr (std::is_same_v<std::decay_t<Object>, T>)
+				{
+					return Object(function->call<void *>(api->get_vm_context(), toCallArg(args)...));
+				}
+				else
+				{
+					return function->call<T>(api->get_vm_context(), toCallArg(args)...);
+				}
 			}
 
 			api->log_error("call: unknown function {}.{}", m_type->get_full_name(), funcName);

@@ -554,6 +554,44 @@ void MusicSystemMod::installHooks()
 			Object launcher = getSingleton("app.Launcher");
 			launcher.set<bool>("_isGamePause", isGamePause);
 		}));
+
+	static std::optional<bool> s_playMusicPlayerBgmReturnValue;
+	s_hooks.emplace_back(hook(
+		"app.sound.SoundMilkyManager.playMusicPlayerBgm",
+		[](int argc, void **argv, auto...)
+		{
+			Object soundMilkyManager = argv[1];
+			std::int32_t bgmId = (std::int32_t)(intptr_t)argv[2];
+
+			switch ((app::AppDefine::GameType)getSingleton("app.Launcher").get<std::int32_t>("gameType"))
+			{
+			case app::AppDefine::GameType::rr1:
+			case app::AppDefine::GameType::rr2:
+			case app::AppDefine::GameType::rr3:
+				auto containerAndTriggerId = getBgmContainerAndTriggerId(bgmId);
+				if (!containerAndTriggerId.has_value())
+				{
+					return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+				}
+				Object container = containerAndTriggerId.value().first;
+				std::uint32_t triggerId = containerAndTriggerId.value().second;
+
+				soundMilkyManager["_CurrentPlayMpContainer"] = container;
+				s_playMusicPlayerBgmReturnValue = soundMilkyManager.call<bool>(
+					"playMusicPlayerBgmByTriggerId", triggerId);
+				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		[](void **retval, auto...)
+		{
+			if (s_playMusicPlayerBgmReturnValue.has_value())
+			{
+				*retval = (void *)(intptr_t)s_playMusicPlayerBgmReturnValue.value();
+				s_playMusicPlayerBgmReturnValue.reset();
+			}
+		}));
 }
 
 /// @brief Uninstall all hooks used for music system mod

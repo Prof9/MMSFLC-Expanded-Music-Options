@@ -274,13 +274,26 @@ bool CustomPlaylistMenuItem::onUpdate()
 				Object soundLauncherBgmManager = createObject("app.sound.SoundLauncherBgmManager");
 				soundLauncherBgmManager.call(".ctor");
 				soundLauncherBgmManager["_Manager"] = soundMilkyManager;
-				soundLauncherBgmManager["_Container"] = soundMilkyManager["_Container"];
+				soundLauncherBgmManager["_Container"] = soundMilkyManager["_Container"]; // wrong container but w/e it works
 				soundLauncherBgmManager.call("start");
-				m_createdSoundLauncherBgmManager = true;
+
+				// create player object
+				Object gameObjName = createString(L"SoundLauncherObject");
+				Type gameObjType = getType("via.GameObject");
+				Object gameObj = Object(gameObjType.call<void *>("create(System.String)", gameObjName));
+
+				// create launcher resource (needed by music player functions)
+				Object launcherResource = gameObj.call<Object>("createComponent", getType("app.sound.SoundResourceRegister_Launcher").m_type->get_runtime_type());
+				launcherResource["_Manager"] = soundMilkyManager;
+				launcherResource["_Container"] = soundMilkyManager["_Container"]; // wrong container but w/e it works
+				launcherResource.set<bool>("_IsRegisterResource", true);
+				soundMilkyManager["_LauncherResource"] = launcherResource;
+
+				m_ingameMusicPlayer = true;
 			}
 			else
 			{
-				m_createdSoundLauncherBgmManager = false;
+				m_ingameMusicPlayer = false;
 			}
 
 			// call openMusicPlayer()
@@ -312,16 +325,31 @@ bool CustomPlaylistMenuItem::onUpdate()
 			saveFavoritesList(s_PreferredMixPlaylistFileName, s_PreferredMixPlaylist);
 
 			// destroy SoundLauncherBgmManager if we created it
-			if (m_createdSoundLauncherBgmManager)
+			if (m_ingameMusicPlayer)
 			{
-				Object soundLauncherBgmManager = getType("app.sound.SoundLauncherBgmManager").get("_Instance");
+				Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
+				Type componentType = getType("via.Component");
+
+				Type soundLauncherBgmManagerType = getType("app.sound.SoundLauncherBgmManager");
+				Object soundLauncherBgmManager = soundLauncherBgmManagerType.get("_Instance");
 				if (soundLauncherBgmManager != nullptr)
 				{
-					soundLauncherBgmManager.call("destroy"); // doesn't work?
-					getType("app.sound.SoundLauncherBgmManager").set("_Instance", Object(nullptr));
+					soundLauncherBgmManagerType.set("_Instance", Object(nullptr));
+
+					componentType.call("destroy", soundLauncherBgmManager);
+				}
+
+				Object launcherResource = soundMilkyManager["_LauncherResource"];
+				if (launcherResource != nullptr)
+				{
+					soundMilkyManager["_LauncherResource"] = nullptr;
+
+					Type gameObjectType = getType("via.GameObject");
+					gameObjectType.call("destroy", launcherResource["GameObject"]);
+					// this also destroys the component (launcherResource)
 				}
 			}
-			m_createdSoundLauncherBgmManager = false;
+			m_ingameMusicPlayer = false;
 
 			s_activeInstance = nullptr;
 			m_state = State::Idle;

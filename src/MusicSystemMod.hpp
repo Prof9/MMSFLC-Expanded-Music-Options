@@ -67,6 +67,8 @@ private:
 	static void loadSettings();
 	static void saveSettings();
 
+	static std::optional<std::pair<REFrameworkHelper::Object, std::uint32_t>> getBgmContainerAndTriggerId(std::uint16_t bgmId);
+	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged, REFrameworkHelper::Object container, std::uint32_t triggerId);
 	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged);
 
 	// Constants
