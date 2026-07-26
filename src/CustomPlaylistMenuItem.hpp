@@ -58,6 +58,7 @@ protected:
 private:
 	// Instance state
 	State m_state = State::Idle;
+	bool m_createdSoundLauncherBgmManager = false;
 	std::size_t m_numNewAlbumFlags;
 
 	std::filesystem::path m_customPlaylistFileName;

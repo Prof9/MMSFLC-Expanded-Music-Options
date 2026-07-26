@@ -34,24 +34,31 @@ static void setFieldPointer(T *pointer, T value)
 	*pointer = value;
 }
 
-// Assume for now all void * are managed objects
 template <>
-static void setFieldPointer<void *>(void **pointer, void *value)
+static void setFieldPointer<Object>(Object *pointer, Object value)
 {
-	void *oldValue = *pointer;
+	// pointer is not really an Object *
+	Object oldValue = Object(*(void **)pointer);
 	*pointer = value;
 
 	// Update reference count for new value
 	if (value != nullptr)
 	{
-		((reframework::API::ManagedObject *)value)->add_ref();
+		value.m_object->add_ref();
 	}
 
 	// Update reference count for old value
 	if (oldValue != nullptr)
 	{
-		((reframework::API::ManagedObject *)oldValue)->release();
+		oldValue.m_object->release();
 	}
+}
+
+template <>
+static void setFieldPointer<void *>(void **pointer, void *value)
+{
+	// Assume for now all void * are managed objects
+	setFieldPointer((Object *)pointer, (Object)value);
 }
 
 /// @brief Uninstall this hook; invalidates the hook reference.
@@ -59,7 +66,7 @@ void HookRef::unhook()
 {
 	if (m_method != nullptr)
 	{
-		this->m_method->remove_hook(this->m_hookId);
+		m_method->remove_hook(m_hookId);
 	}
 	*this = HookRef();
 }
@@ -67,9 +74,9 @@ void HookRef::unhook()
 template <typename T>
 T Object::getField(std::string_view fieldName, T reframework::InvokeRet::*invokeRetField, bool isValueType) const
 {
-	assert(this->m_object != nullptr);
+	assert(m_object != nullptr);
 
-	reframework::API::TypeDefinition *type = this->m_object->get_type_definition();
+	reframework::API::TypeDefinition *type = m_object->get_type_definition();
 	assert(type != nullptr);
 
 	// Get field via getter
@@ -77,13 +84,13 @@ T Object::getField(std::string_view fieldName, T reframework::InvokeRet::*invoke
 		std::format("get_{}", fieldName));
 	if (getter != nullptr)
 	{
-		reframework::InvokeRet ret = getter->invoke(this->m_object, std::span<void *>());
+		reframework::InvokeRet ret = getter->invoke(m_object, std::span<void *>());
 
 		return ret.*invokeRetField;
 	}
 
 	// Get field directly
-	T *fieldPtr = this->m_object->get_field<T>(fieldName, isValueType);
+	T *fieldPtr = m_object->get_field<T>(fieldName, isValueType);
 	if (fieldPtr != nullptr)
 	{
 		return *fieldPtr;
@@ -99,9 +106,9 @@ T Object::getField(std::string_view fieldName, T reframework::InvokeRet::*invoke
 template <typename T>
 void Object::setField(std::string_view fieldName, T value, bool isValueType) const
 {
-	assert(this->m_object != nullptr);
+	assert(m_object != nullptr);
 
-	reframework::API::TypeDefinition *type = this->m_object->get_type_definition();
+	reframework::API::TypeDefinition *type = m_object->get_type_definition();
 	assert(type != nullptr);
 
 	// Set field via setter
@@ -109,12 +116,12 @@ void Object::setField(std::string_view fieldName, T value, bool isValueType) con
 	reframework::API::Method *setter = type->find_method(funcName);
 	if (setter != nullptr)
 	{
-		setter->invoke(this->m_object, {toInvokeArg<T>(value)});
+		setter->invoke(m_object, {toInvokeArg<T>(value)});
 		return;
 	}
 
 	// Set field directly
-	T *fieldPtr = this->m_object->get_field<T>(fieldName, isValueType);
+	T *fieldPtr = m_object->get_field<T>(fieldName, isValueType);
 	if (fieldPtr != nullptr)
 	{
 		setFieldPointer(fieldPtr, value);
@@ -139,16 +146,16 @@ void Object::setField(std::string_view fieldName, T value, bool isValueType) con
 template <typename T>
 T Object::getArray(size_t idx, T reframework::InvokeRet::*invokeRetField) const
 {
-	assert(this->m_object != nullptr);
+	assert(m_object != nullptr);
 
-	reframework::API::TypeDefinition *type = this->m_object->get_type_definition();
+	reframework::API::TypeDefinition *type = m_object->get_type_definition();
 	assert(type != nullptr);
 
 	// Get array item via getter
 	reframework::API::Method *getter = type->find_method("get_Item");
 	if (getter != nullptr)
 	{
-		reframework::InvokeRet ret = getter->invoke(this->m_object, {(void *)(uintptr_t)idx});
+		reframework::InvokeRet ret = getter->invoke(m_object, {(void *)(uintptr_t)idx});
 
 		return ret.*invokeRetField;
 	}
@@ -163,16 +170,16 @@ T Object::getArray(size_t idx, T reframework::InvokeRet::*invokeRetField) const
 template <typename T>
 void Object::setArray(size_t idx, T value) const
 {
-	assert(this->m_object != nullptr);
+	assert(m_object != nullptr);
 
-	reframework::API::TypeDefinition *type = this->m_object->get_type_definition();
+	reframework::API::TypeDefinition *type = m_object->get_type_definition();
 	assert(type != nullptr);
 
 	// Set array field via setter
 	reframework::API::Method *setter = type->find_method("set_Item");
 	if (setter != nullptr)
 	{
-		setter->invoke(this->m_object, {(void *)(uintptr_t)idx, toInvokeArg<T>(value)});
+		setter->invoke(m_object, {(void *)(uintptr_t)idx, toInvokeArg<T>(value)});
 		return;
 	}
 
@@ -189,20 +196,37 @@ void Object::setArray(size_t idx, T value) const
 template <typename T>
 T Type::get(std::string_view fieldName, bool isValueType) const
 {
-	assert(this->m_type != nullptr);
+	assert(m_type != nullptr);
 
 	// Get field directly
-	reframework::API::Field *fieldPtr = this->m_type->find_field(fieldName);
+	reframework::API::Field *fieldPtr = m_type->find_field(fieldName);
 	if (fieldPtr != nullptr)
 	{
 		return *(T *)fieldPtr->get_data_raw(nullptr, isValueType);
 	}
 
 	auto &api = reframework::API::get();
-	api->log_error("get: unknown field {}.{}", this->m_type->get_full_name(), fieldName);
+	api->log_error("get: unknown field {}.{}", m_type->get_full_name(), fieldName);
 	assert(0);
 
 	return T();
+}
+
+template <typename T>
+void Type::set(std::string_view fieldName, T value, bool isValueType) const
+{
+	assert(m_type != nullptr);
+
+	// Set field directly
+	reframework::API::Field *fieldPtr = m_type->find_field(fieldName);
+	if (fieldPtr != nullptr)
+	{
+		setFieldPointer((T *)fieldPtr->get_data_raw(nullptr, isValueType), value);
+		return;
+	}
+	auto &api = reframework::API::get();
+	api->log_error("set: unknown field {}.{}", m_type->get_full_name(), fieldName);
+	assert(0);
 }
 
 /// @brief Helper function to hook TDB function
@@ -374,40 +398,39 @@ Object REFrameworkHelper::createString(wchar_t const *string)
 	return Object(object);
 }
 
-#define CREATE_FIELD_GETTER(externalType, invokeRetField)                                                       \
+#define CREATE_FIELD_GETTER(externalType, invokeRetField)                                                 \
+	template <>                                                                                           \
+	externalType Object::get(std::string_view fieldName, bool isValueType) const                          \
+	{                                                                                                     \
+		return externalType(getField<decltype(invokeRetField)>(fieldName, &invokeRetField, isValueType)); \
+	}
+
+#define CREATE_FIELD_SETTER(externalType, invokeRetField, valueConverted)                                       \
 	template <>                                                                                                 \
-	externalType Object::get(std::string_view fieldName, bool isValueType) const                                \
+	void Object::set(std::string_view fieldName, externalType value, bool isValueType) const                    \
 	{                                                                                                           \
-		return externalType(this->getField<decltype(invokeRetField)>(fieldName, &invokeRetField, isValueType)); \
+		setField<decltype(invokeRetField)>(fieldName, (decltype(invokeRetField))(valueConverted), isValueType); \
 	}
 
-#define CREATE_FIELD_SETTER(externalType, invokeRetField, valueConverted)                                             \
-	template <>                                                                                                       \
-	void Object::set(std::string_view fieldName, externalType value, bool isValueType) const                          \
-	{                                                                                                                 \
-		this->setField<decltype(invokeRetField)>(fieldName, (decltype(invokeRetField))(valueConverted), isValueType); \
+#define CREATE_ARRAY_GETTER(externalType, invokeRetField)                              \
+	template <>                                                                        \
+	externalType Object::get(size_t idx) const                                         \
+	{                                                                                  \
+		return externalType(getArray<decltype(invokeRetField)>(idx, &invokeRetField)); \
 	}
 
-#define CREATE_ARRAY_GETTER(externalType, invokeRetField)                                    \
+#define CREATE_ARRAY_SETTER(externalType, invokeRetField, valueConverted)                    \
 	template <>                                                                              \
-	externalType Object::get(size_t idx) const                                               \
+	void Object::set(size_t idx, externalType value) const                                   \
 	{                                                                                        \
-		return externalType(this->getArray<decltype(invokeRetField)>(idx, &invokeRetField)); \
+		setArray<decltype(invokeRetField)>(idx, (decltype(invokeRetField))(valueConverted)); \
 	}
 
-#define CREATE_ARRAY_SETTER(externalType, invokeRetField, valueConverted)                          \
-	template <>                                                                                    \
-	void Object::set(size_t idx, externalType value) const                                         \
-	{                                                                                              \
-		this->setArray<decltype(invokeRetField)>(idx, (decltype(invokeRetField))(valueConverted)); \
-	}
+#define CREATE_TYPE_FIELD_GETTER(externalType) \
+	template externalType Type::get(std::string_view fieldName, bool isValueType) const;
 
-#define CREATE_TYPE_FIELD_GETTER(externalType, invokeRetField)                                                  \
-	template <>                                                                                                 \
-	externalType Type::get(std::string_view fieldName, bool isValueType) const                                  \
-	{                                                                                                           \
-		return externalType(this->getField<decltype(invokeRetField)>(fieldName, &invokeRetField, isValueType)); \
-	}
+#define CREATE_TYPE_FIELD_SETTER(externalType) \
+	template void Type::set(std::string_view fieldName, externalType value, bool isValueType) const;
 
 #define CREATE_STATIC_FIELD_GETTER(externalType) \
 	template externalType REFrameworkHelper::getStaticField(std::string_view fullName);
@@ -417,6 +440,8 @@ Object REFrameworkHelper::createString(wchar_t const *string)
 	CREATE_FIELD_SETTER(externalType, invokeRetField, valueConverted) \
 	CREATE_ARRAY_GETTER(externalType, invokeRetField)                 \
 	CREATE_ARRAY_SETTER(externalType, invokeRetField, valueConverted) \
+	CREATE_TYPE_FIELD_GETTER(externalType)                            \
+	CREATE_TYPE_FIELD_SETTER(externalType)                            \
 	CREATE_STATIC_FIELD_GETTER(externalType)
 
 CREATE_ALL(bool, reframework::InvokeRet::byte, value)

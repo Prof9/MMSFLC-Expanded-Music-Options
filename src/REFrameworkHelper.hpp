@@ -345,6 +345,9 @@ namespace REFrameworkHelper
 		template <typename T = Object>
 		T get(std::string_view fieldName, bool isValueType = false) const;
 
+		template <typename T = Object>
+		void set(std::string_view fieldName, T value, bool isValueType = false) const;
+
 		template <typename T = void, typename... TArgs>
 		T call(std::string_view funcName, TArgs... args) const
 		{

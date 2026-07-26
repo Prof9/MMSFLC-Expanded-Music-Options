@@ -522,6 +522,38 @@ void MusicSystemMod::installHooks()
 			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
 		nullptr));
+
+	s_hooks.emplace_back(hook(
+		"app.Launcher.setStandbyFlagLauncherOnlyGUIPrefabs",
+		[](int argc, void **argv, auto...)
+		{
+			// Always keep Launcher GUI prefabs loaded
+			// Allows loading Music Player while in-game
+			argv[2] = (void *)(intptr_t)true;
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
+	static bool isGamePause = false;
+	s_hooks.emplace_back(hook(
+		"app.GUILauncherMusicPlayer.update",
+		[](auto...)
+		{
+			// set app.Launcher._isGamePause to false during app.GUILauncherMusicPlayer.update
+			// Allows Music Player to work in-game
+			Object launcher = getSingleton("app.Launcher");
+			isGamePause = launcher.get<bool>("_isGamePause");
+			launcher.set<bool>("_isGamePause", false);
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		[](auto...)
+		{
+			// restore original value of app.Launcher._isGamePause
+			Object launcher = getSingleton("app.Launcher");
+			launcher.set<bool>("_isGamePause", isGamePause);
+		}));
 }
 
 /// @brief Uninstall all hooks used for music system mod

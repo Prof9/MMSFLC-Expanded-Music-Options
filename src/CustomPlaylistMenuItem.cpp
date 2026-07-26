@@ -267,6 +267,22 @@ bool CustomPlaylistMenuItem::onUpdate()
 			s_activeInstance = this;
 			installHooksMusicPlayer();
 
+			// create SoundLauncherBgmManager if doesn't exist
+			if (getType("app.sound.SoundLauncherBgmManager").get("_Instance") == nullptr)
+			{
+				Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
+				Object soundLauncherBgmManager = createObject("app.sound.SoundLauncherBgmManager");
+				soundLauncherBgmManager.call(".ctor");
+				soundLauncherBgmManager["_Manager"] = soundMilkyManager;
+				soundLauncherBgmManager["_Container"] = soundMilkyManager["_Container"];
+				soundLauncherBgmManager.call("start");
+				m_createdSoundLauncherBgmManager = true;
+			}
+			else
+			{
+				m_createdSoundLauncherBgmManager = false;
+			}
+
 			// call openMusicPlayer()
 			launcher.call("openMusicPlayer");
 
@@ -294,6 +310,18 @@ bool CustomPlaylistMenuItem::onUpdate()
 			// save playlists
 			saveFavoritesList(s_activeInstance->m_customPlaylistFileName, m_customPlaylist);
 			saveFavoritesList(s_PreferredMixPlaylistFileName, s_PreferredMixPlaylist);
+
+			// destroy SoundLauncherBgmManager if we created it
+			if (m_createdSoundLauncherBgmManager)
+			{
+				Object soundLauncherBgmManager = getType("app.sound.SoundLauncherBgmManager").get("_Instance");
+				if (soundLauncherBgmManager != nullptr)
+				{
+					soundLauncherBgmManager.call("destroy"); // doesn't work?
+					getType("app.sound.SoundLauncherBgmManager").set("_Instance", Object(nullptr));
+				}
+			}
+			m_createdSoundLauncherBgmManager = false;
 
 			s_activeInstance = nullptr;
 			m_state = State::Idle;
