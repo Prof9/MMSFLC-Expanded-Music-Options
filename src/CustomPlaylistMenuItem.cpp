@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "CustomPlaylistMenuItem.hpp"
+#include "MusicSystemMod.hpp"
 #include "REFrameworkHelper.hpp"
 
 using namespace REFrameworkHelper;
@@ -267,10 +268,56 @@ bool CustomPlaylistMenuItem::onUpdate()
 			s_activeInstance = this;
 			installHooksMusicPlayer();
 
+			// stop any playing in-game music
+			Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
+			Object sound = soundMilkyManager["_IngameSoundSystem"];
+			if (sound != nullptr)
+			{
+				Object playingBgmInfoList = sound["_PlayingBgmInfoList"];
+				std::int32_t playingBgmInfoListLength = playingBgmInfoList.get<std::int32_t>("Length");
+				for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
+				{
+					Object playingBgmInfo = playingBgmInfoList[i];
+					if (playingBgmInfo.get<bool>("IsPlaying"))
+					{
+						// Which music is playing doesn't matter for pause
+						std::optional<MusicSystemMod::BgmTriggerInfo> bgmTriggerInfo = MusicSystemMod::getBgmTriggerInfo(0);
+						if (bgmTriggerInfo.has_value())
+						{
+							Object container = bgmTriggerInfo.value().Container;
+							std::uint32_t triggerId = bgmTriggerInfo.value().PauseTriggerID;
+							Object playerObject = playingBgmInfo["PlayerObject"];
+
+							container.call(
+								"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
+								triggerId,
+								playerObject,
+								nullptr,
+								0xFFFFFFFF,
+								false,
+								0,
+								0,
+								nullptr,
+								nullptr,
+								nullptr,
+								nullptr);
+						}
+					}
+				}
+
+				// Delete any pending delayed play requests
+				Object delayPlayBgmInfoList = sound["_DelayPlayBgmList"];
+				std::int32_t delayPlayBgmInfoListLength = delayPlayBgmInfoList.get<std::int32_t>("Length");
+				for (std::int32_t i = 0; i < delayPlayBgmInfoListLength; ++i)
+				{
+					delayPlayBgmInfoList[i].call("reset");
+				}
+				sound.set<std::uint8_t>("_DelayPlayBgmRequestCount", 0);
+			}
+
 			// create SoundLauncherBgmManager if doesn't exist
 			if (getType("app.sound.SoundLauncherBgmManager").get("_Instance") == nullptr)
 			{
-				Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
 				Object soundLauncherBgmManager = createObject("app.sound.SoundLauncherBgmManager");
 				soundLauncherBgmManager.call(".ctor");
 				soundLauncherBgmManager["_Manager"] = soundMilkyManager;
@@ -350,6 +397,44 @@ bool CustomPlaylistMenuItem::onUpdate()
 				}
 			}
 			m_ingameMusicPlayer = false;
+
+			// resume any playing in-game music
+			Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
+			Object sound = soundMilkyManager["_IngameSoundSystem"];
+			if (sound != nullptr)
+			{
+				Object playingBgmInfoList = sound["_PlayingBgmInfoList"];
+				std::int32_t playingBgmInfoListLength = playingBgmInfoList.get<std::int32_t>("Length");
+				for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
+				{
+					Object playingBgmInfo = playingBgmInfoList[i];
+					if (playingBgmInfo.get<bool>("IsPlaying"))
+					{
+						// Which music is playing doesn't matter for resume
+						std::optional<MusicSystemMod::BgmTriggerInfo> bgmTriggerInfo = MusicSystemMod::getBgmTriggerInfo(0);
+						if (bgmTriggerInfo.has_value())
+						{
+							Object container = bgmTriggerInfo.value().Container;
+							std::uint32_t triggerId = bgmTriggerInfo.value().ResumeTriggerID;
+							Object playerObject = playingBgmInfo["PlayerObject"];
+
+							container.call(
+								"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
+								triggerId,
+								playerObject,
+								nullptr,
+								0xFFFFFFFF,
+								false,
+								0,
+								0,
+								nullptr,
+								nullptr,
+								nullptr,
+								nullptr);
+						}
+					}
+				}
+			}
 
 			s_activeInstance = nullptr;
 			m_state = State::Idle;
