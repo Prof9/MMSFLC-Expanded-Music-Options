@@ -278,7 +278,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 				for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
 				{
 					Object playingBgmInfo = playingBgmInfoList[i];
-					if (playingBgmInfo.get<bool>("IsPlaying"))
+					if (playingBgmInfo != nullptr && playingBgmInfo.get<bool>("IsPlaying"))
 					{
 						// Which music is playing doesn't matter for pause
 						std::optional<MusicSystemMod::BgmTriggerInfo> bgmTriggerInfo = MusicSystemMod::getBgmTriggerInfo(0);
@@ -310,7 +310,11 @@ bool CustomPlaylistMenuItem::onUpdate()
 				std::int32_t delayPlayBgmInfoListLength = delayPlayBgmInfoList.get<std::int32_t>("Length");
 				for (std::int32_t i = 0; i < delayPlayBgmInfoListLength; ++i)
 				{
-					delayPlayBgmInfoList[i].call("reset");
+					Object delayPlayBgmInfo = delayPlayBgmInfoList[i];
+					if (delayPlayBgmInfo != nullptr)
+					{
+						delayPlayBgmInfoList[i].call("reset");
+					}
 				}
 				sound.set<std::uint8_t>("_DelayPlayBgmRequestCount", 0);
 			}
@@ -408,7 +412,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 				for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
 				{
 					Object playingBgmInfo = playingBgmInfoList[i];
-					if (playingBgmInfo.get<bool>("IsPlaying"))
+					if (playingBgmInfo != nullptr && playingBgmInfo.get<bool>("IsPlaying"))
 					{
 						// Which music is playing doesn't matter for resume
 						std::optional<MusicSystemMod::BgmTriggerInfo> bgmTriggerInfo = MusicSystemMod::getBgmTriggerInfo(0);
