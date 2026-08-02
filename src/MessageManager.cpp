@@ -138,7 +138,7 @@ bool MessageManager::createAndLoadMessages(std::map<Guid, std::map<via::Language
 	if (s_languages == nullptr)
 	{
 		std::uint32_t *languages = (std::uint32_t *)calloc(1, sizeof(std::uint32_t) * std::to_underlying(via::Language::Max));
-		for (std::size_t i = 0; i < std::to_underlying(via::Language::Max); i++)
+		for (std::size_t i = 0; i < std::to_underlying(via::Language::Max); ++i)
 		{
 			languages[i] = i;
 		}

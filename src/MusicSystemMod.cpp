@@ -50,10 +50,10 @@ void MusicSystemMod::uninstall()
 	uninstallHooks();
 }
 
-/// @brief Get container and trigger ID for playing given BGM
+/// @brief Get BGM container and trigger info for given BGM
 /// @param bgmId BGM ID
-/// @return Container and trigger ID, if BGM is valid
-std::optional<std::pair<Object, std::uint32_t>> MusicSystemMod::getBgmContainerAndTriggerId(std::uint16_t bgmId)
+/// @return BGM container and trigger info, if BGM is valid
+std::optional<MusicSystemMod::BgmTriggerInfo> MusicSystemMod::getBgmTriggerInfo(std::uint16_t bgmId)
 {
 	Type soundMilkyDefine = getType("app.sound.SoundMilkyDefine");
 
@@ -71,21 +71,21 @@ std::optional<std::pair<Object, std::uint32_t>> MusicSystemMod::getBgmContainerA
 
 	Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
 
-	std::uint8_t series = soundMilkyDefine.call<std::uint8_t>("getMusicPlayerBgmDefine_Series", bgmId);
+	BgmSeries series = (BgmSeries)soundMilkyDefine.call<std::uint8_t>("getMusicPlayerBgmDefine_Series", bgmId);
 	std::uint8_t bgmSettingIndex = soundMilkyDefine.call<std::uint8_t>("getMusicPlayerBgmDefine_Index", bgmId);
 
-	std::uint32_t triggerId;
+	std::uint32_t playTriggerID = 0xFFFFFFFF;
 	Object container;
-	switch ((BgmSeries)series)
+	switch (series)
 	{
 	case BgmSeries::MMSF1:
 	case BgmSeries::MMSF2:
 	case BgmSeries::MMSF3:
-		triggerId = soundMilkyManager["_BgmSettingDataList"][series]["BgmId2TriggerIdList"][bgmSettingIndex].get<std::uint32_t>("PlayTriggerId");
+		playTriggerID = soundMilkyManager["_BgmSettingDataList"][series]["BgmId2TriggerIdList"][bgmSettingIndex].get<std::uint32_t>("PlayTriggerId");
 		container = soundMilkyManager["_Container"];
 		break;
 	case BgmSeries::MMSFLC:
-		triggerId = soundMilkyManager["_LauncherSettingData"]["IF_PlayBgmTriggerIdList"].get<std::uint32_t>(bgmSettingIndex);
+		playTriggerID = soundMilkyManager["_LauncherSettingData"]["IF_PlayBgmTriggerIdList"].get<std::uint32_t>(bgmSettingIndex);
 		container = soundMilkyManager["_Container"];
 		break;
 	case BgmSeries::MMSFLC_DLC:
@@ -100,7 +100,7 @@ std::optional<std::pair<Object, std::uint32_t>> MusicSystemMod::getBgmContainerA
 		{
 			return {};
 		}
-		triggerId = extraResource["SettingData"]["IF_PlayTriggerIdList"].get<std::uint32_t>(bgmSettingIndex);
+		playTriggerID = extraResource["SettingData"]["IF_PlayTriggerIdList"].get<std::uint32_t>(bgmSettingIndex);
 		container = extraResource["_Container"];
 		break;
 	}
@@ -115,7 +115,7 @@ std::optional<std::pair<Object, std::uint32_t>> MusicSystemMod::getBgmContainerA
 		{
 			return {};
 		}
-		triggerId = extraResource["SettingData"]["IF_PlayTriggerIdList"].get<std::uint32_t>(bgmSettingIndex);
+		playTriggerID = extraResource["SettingData"]["IF_PlayTriggerIdList"].get<std::uint32_t>(bgmSettingIndex);
 		container = extraResource["_Container"];
 		break;
 	}
@@ -123,7 +123,40 @@ std::optional<std::pair<Object, std::uint32_t>> MusicSystemMod::getBgmContainerA
 		return {};
 	}
 
-	return std::pair<Object, std::uint32_t>{container, triggerId};
+	std::uint32_t stopTriggerID = 0xFFFFFFFF;
+	std::uint32_t fadeOutTriggerID = 0xFFFFFFFF;
+	std::uint32_t pauseTriggerID = 0xFFFFFFFF;
+	std::uint32_t resumeTriggerID = 0xFFFFFFFF;
+	switch ((app::AppDefine::GameType)getSingleton("app.Launcher").get<std::int32_t>("gameType"))
+	{
+	case app::AppDefine::GameType::rr1:
+		stopTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF1].get<std::uint32_t>("DefaultStopTriggerId");
+		fadeOutTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF1].get<std::uint32_t>("PlayingBgmFadeOutTriggerId");
+		pauseTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF1].get<std::uint32_t>("PauseTriggerId");
+		resumeTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF1].get<std::uint32_t>("ResumeTriggerId");
+		break;
+	case app::AppDefine::GameType::rr2:
+		stopTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF2].get<std::uint32_t>("DefaultStopTriggerId");
+		fadeOutTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF2].get<std::uint32_t>("PlayingBgmFadeOutTriggerId");
+		pauseTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF2].get<std::uint32_t>("PauseTriggerId");
+		resumeTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF2].get<std::uint32_t>("ResumeTriggerId");
+		break;
+	case app::AppDefine::GameType::rr3:
+		stopTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF3].get<std::uint32_t>("DefaultStopTriggerId");
+		fadeOutTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF3].get<std::uint32_t>("PlayingBgmFadeOutTriggerId");
+		pauseTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF3].get<std::uint32_t>("PauseTriggerId");
+		resumeTriggerID = soundMilkyManager["_BgmSettingDataList"][BgmSeries::MMSF3].get<std::uint32_t>("ResumeTriggerId");
+		break;
+	}
+
+	return BgmTriggerInfo{
+		.Container = container,
+		.PlayTriggerID = playTriggerID,
+		.StopTriggerID = stopTriggerID,
+		.FadeOutTriggerID = fadeOutTriggerID,
+		.PauseTriggerID = pauseTriggerID,
+		.ResumeTriggerID = resumeTriggerID,
+	};
 }
 
 /// @brief Play BGM
@@ -176,14 +209,14 @@ bool MusicSystemMod::playBgm(Object srcObj, std::uint16_t bgmId, bool isArranged
 /// @return True if BGM started, false if BGM could not be started
 bool MusicSystemMod::playBgm(Object srcObj, std::uint16_t bgmId, bool isArranged)
 {
-	auto containerAndTriggerId = getBgmContainerAndTriggerId(bgmId);
-	if (!containerAndTriggerId.has_value())
+	std::optional<BgmTriggerInfo> bgmTriggerInfo = getBgmTriggerInfo(bgmId);
+	if (!bgmTriggerInfo.has_value())
 	{
 		return false;
 	}
 
-	Object container = containerAndTriggerId.value().first;
-	std::uint32_t triggerId = containerAndTriggerId.value().second;
+	Object container = bgmTriggerInfo.value().Container;
+	std::uint32_t triggerId = bgmTriggerInfo.value().PlayTriggerID;
 
 	return playBgm(srcObj, bgmId, isArranged, container, triggerId);
 }

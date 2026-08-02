@@ -29,7 +29,7 @@ void MenuItem::setValue(std::int32_t value) const
 std::int32_t MenuItem::getCursor() const
 {
 	std::int32_t value = getValue();
-	for (std::int32_t i = 0; i < m_options->size(); i++)
+	for (std::int32_t i = 0; i < m_options->size(); ++i)
 	{
 		if ((*m_options)[i].m_value == value)
 		{

@@ -147,7 +147,7 @@ void MusicSystemMod::installHooks()
 
 					bool found = false;
 					std::int32_t playlistLen = playlist.get<std::int32_t>("Count");
-					for (std::int32_t i = 0; i < playlistLen; i++)
+					for (std::int32_t i = 0; i < playlistLen; ++i)
 					{
 						Object favMusicInfo = playlist[i];
 						std::uint16_t musicId = favMusicInfo.get<std::uint16_t>("musicId");
@@ -568,13 +568,13 @@ void MusicSystemMod::installHooks()
 			case app::AppDefine::GameType::rr1:
 			case app::AppDefine::GameType::rr2:
 			case app::AppDefine::GameType::rr3:
-				auto containerAndTriggerId = getBgmContainerAndTriggerId(bgmId);
-				if (!containerAndTriggerId.has_value())
+				std::optional<BgmTriggerInfo> bgmTriggerInfo = getBgmTriggerInfo(bgmId);
+				if (!bgmTriggerInfo.has_value())
 				{
 					return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 				}
-				Object container = containerAndTriggerId.value().first;
-				std::uint32_t triggerId = containerAndTriggerId.value().second;
+				Object container = bgmTriggerInfo.value().Container;
+				std::uint32_t triggerId = bgmTriggerInfo.value().PlayTriggerID;
 
 				soundMilkyManager["_CurrentPlayMpContainer"] = container;
 				s_playMusicPlayerBgmReturnValue = soundMilkyManager.call<bool>(
@@ -592,6 +592,170 @@ void MusicSystemMod::installHooks()
 				s_playMusicPlayerBgmReturnValue.reset();
 			}
 		}));
+
+	s_hooks.emplace_back(hook(
+		"app.sound.SoundMilkyManager.stopMusicPlayerBgm",
+		[](int argc, void **argv, auto...)
+		{
+			Object soundMilkyManager = argv[1];
+
+			switch ((app::AppDefine::GameType)getSingleton("app.Launcher").get<std::int32_t>("gameType"))
+			{
+			case app::AppDefine::GameType::rr1:
+			case app::AppDefine::GameType::rr2:
+			case app::AppDefine::GameType::rr3:
+				// Which BGM we are playing doesn't matter
+				std::optional<BgmTriggerInfo> bgmTriggerInfo = getBgmTriggerInfo(0);
+				if (!bgmTriggerInfo.has_value())
+				{
+					return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+				}
+				Object container = bgmTriggerInfo.value().Container;
+				std::uint32_t triggerId = bgmTriggerInfo.value().StopTriggerID;
+				Object playerObject = soundMilkyManager["GameObject"];
+
+				container.call(
+					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
+					triggerId,
+					playerObject,
+					nullptr,
+					0xFFFFFFFF,
+					false,
+					0,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr);
+				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
+	s_hooks.emplace_back(hook(
+		"app.sound.SoundMilkyManager.fadeOutStopMusicPlayerBgm",
+		[](int argc, void **argv, auto...)
+		{
+			Object soundMilkyManager = argv[1];
+
+			switch ((app::AppDefine::GameType)getSingleton("app.Launcher").get<std::int32_t>("gameType"))
+			{
+			case app::AppDefine::GameType::rr1:
+			case app::AppDefine::GameType::rr2:
+			case app::AppDefine::GameType::rr3:
+				// Which BGM we are playing doesn't matter
+				std::optional<BgmTriggerInfo> bgmTriggerInfo = getBgmTriggerInfo(0);
+				if (!bgmTriggerInfo.has_value())
+				{
+					return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+				}
+				Object container = bgmTriggerInfo.value().Container;
+				std::uint32_t triggerId = bgmTriggerInfo.value().FadeOutTriggerID;
+				Object playerObject = soundMilkyManager["GameObject"];
+
+				container.call(
+					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
+					triggerId,
+					playerObject,
+					nullptr,
+					0xFFFFFFFF,
+					false,
+					0,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr);
+				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
+	s_hooks.emplace_back(hook(
+		"app.sound.SoundMilkyManager.pauseMusicPlayerBgm",
+		[](int argc, void **argv, auto...)
+		{
+			Object soundMilkyManager = argv[1];
+
+			switch ((app::AppDefine::GameType)getSingleton("app.Launcher").get<std::int32_t>("gameType"))
+			{
+			case app::AppDefine::GameType::rr1:
+			case app::AppDefine::GameType::rr2:
+			case app::AppDefine::GameType::rr3:
+				// Which BGM we are playing doesn't matter
+				std::optional<BgmTriggerInfo> bgmTriggerInfo = getBgmTriggerInfo(0);
+				if (!bgmTriggerInfo.has_value())
+				{
+					return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+				}
+				Object container = bgmTriggerInfo.value().Container;
+				std::uint32_t triggerId = bgmTriggerInfo.value().PauseTriggerID;
+				Object playerObject = soundMilkyManager["GameObject"];
+
+				container.call(
+					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
+					triggerId,
+					playerObject,
+					nullptr,
+					0xFFFFFFFF,
+					false,
+					0,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr);
+				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
+	s_hooks.emplace_back(hook(
+		"app.sound.SoundMilkyManager.resumeMusicPlayerBgm",
+		[](int argc, void **argv, auto...)
+		{
+			Object soundMilkyManager = argv[1];
+
+			switch ((app::AppDefine::GameType)getSingleton("app.Launcher").get<std::int32_t>("gameType"))
+			{
+			case app::AppDefine::GameType::rr1:
+			case app::AppDefine::GameType::rr2:
+			case app::AppDefine::GameType::rr3:
+				// Which BGM we are playing doesn't matter
+				std::optional<BgmTriggerInfo> bgmTriggerInfo = getBgmTriggerInfo(0);
+				if (!bgmTriggerInfo.has_value())
+				{
+					return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+				}
+				Object container = bgmTriggerInfo.value().Container;
+				std::uint32_t triggerId = bgmTriggerInfo.value().ResumeTriggerID;
+				Object playerObject = soundMilkyManager["GameObject"];
+
+				container.call(
+					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
+					triggerId,
+					playerObject,
+					nullptr,
+					0xFFFFFFFF,
+					false,
+					0,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr);
+				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
 }
 
 /// @brief Uninstall all hooks used for music system mod

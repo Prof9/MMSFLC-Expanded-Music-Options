@@ -479,7 +479,7 @@ void AudioMenuExtension::installHooks()
 			{
 				Object newGuideDataList = createArray("app.OperationGuideData", guideDataListLength + 1);
 
-				for (std::int32_t i = 0; i < guideDataListLength; i++)
+				for (std::int32_t i = 0; i < guideDataListLength; ++i)
 				{
 					newGuideDataList[i] = guideDataList[i];
 				}

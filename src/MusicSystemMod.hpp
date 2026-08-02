@@ -22,6 +22,16 @@ public:
 		DlcMusicReplace,
 	};
 
+	struct BgmTriggerInfo
+	{
+		REFrameworkHelper::Object Container;
+		std::uint32_t PlayTriggerID;
+		std::uint32_t StopTriggerID;
+		std::uint32_t FadeOutTriggerID;
+		std::uint32_t PauseTriggerID;
+		std::uint32_t ResumeTriggerID;
+	};
+
 	struct MusicSettingInfo
 	{
 		MusicSettingType Type;
@@ -58,6 +68,10 @@ public:
 	static void install();
 	static void uninstall();
 
+	static std::optional<BgmTriggerInfo> getBgmTriggerInfo(std::uint16_t bgmId);
+	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged, REFrameworkHelper::Object container, std::uint32_t triggerId);
+	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged);
+
 private:
 	static void installHooks();
 	static void uninstallHooks();
@@ -66,10 +80,6 @@ private:
 
 	static void loadSettings();
 	static void saveSettings();
-
-	static std::optional<std::pair<REFrameworkHelper::Object, std::uint32_t>> getBgmContainerAndTriggerId(std::uint16_t bgmId);
-	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged, REFrameworkHelper::Object container, std::uint32_t triggerId);
-	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged);
 
 	// Constants
 	static const std::map<Guid, std::map<via::Language, char16_t const *>> STRINGS;
