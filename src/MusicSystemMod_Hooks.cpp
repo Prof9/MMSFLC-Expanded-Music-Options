@@ -13,40 +13,30 @@ using namespace REFrameworkHelper;
 /// @brief Install all hooks used for music system mod
 void MusicSystemMod::installHooks()
 {
-	static bool s_corePlayBgm_skip;
-	static void *s_corePlayBgm_retVal;
-
 	// Override corePlayBgm
+	static std::optional<std::uint8_t> s_corePlayBgm_retVal;
 	s_hooks.emplace_back(hook(
 		"app.cSound_Base.corePlayBgm",
 		[](int argc, void **argv, auto...)
 		{
-			static bool isRecursiveCall = false;
-			if (isRecursiveCall)
-			{
-				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
-			}
-
 			Object sound = Object(argv[1]);
 			std::uint32_t triggerId = (std::uint32_t)(intptr_t)argv[2];
 			Object origId2TriggerId = Object(argv[3]);
 			std::uint32_t playerId = (std::uint32_t)(intptr_t)argv[4];
 
-			auto selectNoChange = [&](MusicSettingInfo &musicSettingInfo)
+			auto selectNoChange = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
-				return false;
+				return {};
 			};
-			auto selectMusicOff = [&](MusicSettingInfo &musicSettingInfo)
+			auto selectMusicOff = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
 				std::uint32_t stopTriggerId = sound["_BgmSetting"].get<std::uint32_t>("DefaultStopTriggerId");
 
 				sound.call("coreStopBgm", stopTriggerId, playerId);
 
-				s_corePlayBgm_retVal = 0;
-				s_corePlayBgm_skip = true;
-				return true;
+				return 0;
 			};
-			auto selectAlwaysOriginal = [&](MusicSettingInfo &musicSettingInfo)
+			auto selectAlwaysOriginal = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
@@ -69,11 +59,9 @@ void MusicSystemMod::installHooks()
 				playingBgmInfo.set<bool>("IsPlayOriginalContainer", true);
 				playingBgmInfo.set<bool>("PlayType", 0);
 
-				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
-				s_corePlayBgm_skip = true;
-				return true;
+				return getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
 			};
-			auto selectAlwaysArranged = [&](MusicSettingInfo &musicSettingInfo)
+			auto selectAlwaysArranged = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
@@ -96,11 +84,9 @@ void MusicSystemMod::installHooks()
 				playingBgmInfo.set<bool>("IsPlayOriginalContainer", true);
 				playingBgmInfo.set<bool>("PlayType", 0);
 
-				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
-				s_corePlayBgm_skip = true;
-				return true;
+				return getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
 			};
-			auto selectMix = [&](MusicSettingInfo &musicSettingInfo)
+			auto selectMix = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
 				bool isArranged = sound.get<std::uint8_t>("_CurrentBgmPlayType") == getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Arrange");
 
@@ -187,11 +173,9 @@ void MusicSystemMod::installHooks()
 				playingBgmInfo.set<bool>("IsPlayOriginalContainer", true);
 				playingBgmInfo.set<bool>("PlayType", 0);
 
-				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
-				s_corePlayBgm_skip = true;
-				return true;
+				return getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
 			};
-			auto selectPlaylist = [&](MusicSettingInfo &musicSettingInfo)
+			auto selectPlaylist = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
 				Object playlist;
 				bool isCustomPlaylist = (CustomPlaylistMenuItem::Option)musicSettingInfo.MenuItem->getValue() == CustomPlaylistMenuItem::Option::Playlist;
@@ -207,12 +191,12 @@ void MusicSystemMod::installHooks()
 
 				if (playlist == nullptr)
 				{
-					return false;
+					return {};
 				}
 				std::int32_t playlistSize = playlist.get<std::int32_t>("Count");
 				if (playlistSize == 0)
 				{
-					return false;
+					return {};
 				}
 				std::int32_t r = getType("via.MathEx").call<std::int32_t>("randomRangeIndex", 0, playlistSize);
 				Object musicInfo = playlist[r];
@@ -223,7 +207,7 @@ void MusicSystemMod::installHooks()
 				Object playerObject = playingBgmInfo["PlayerObject"];
 				if (!MusicSystemMod::playBgm(playerObject, musicId, isArrange))
 				{
-					return false;
+					return {};
 				}
 
 				Type soundMilkyDefine = getType("app.sound.SoundMilkyDefine");
@@ -233,18 +217,16 @@ void MusicSystemMod::installHooks()
 				playingBgmInfo.set<std::uint8_t>("FavoriteBgmId_Index", bgmSettingIndex);
 				playingBgmInfo.set<std::uint8_t>("PlayType", getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Favorite"));
 
-				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Favorite");
-				s_corePlayBgm_skip = true;
-				return true;
+				return getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Favorite");
 			};
-			auto selectDlcMusic = [&](MusicSettingInfo &musicSettingInfo)
+			auto selectDlcMusic = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
 				Object extraResource01 = sound
 					["_Manager"]["_ExtraResourceList"]
 					[app::sound::SoundMilkyManager::ExtraResourceTypeEnum::ExtraResource01];
 				if (extraResource01 == nullptr || (Object)(extraResource01["GameObject"]) == nullptr)
 				{
-					return false;
+					return {};
 				}
 				Object container = extraResource01["Container"];
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
@@ -264,11 +246,10 @@ void MusicSystemMod::installHooks()
 					nullptr,
 					nullptr);
 
-				s_corePlayBgm_retVal = (void *)getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
-				s_corePlayBgm_skip = true;
-				return true;
+				return getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
 			};
 
+			bool replaced = false;
 			Object dlcContentsManager = getSingleton("app.DLCContentsManager");
 			for (MusicSettingInfo &musicSettingInfo : s_musicSettingInfoList)
 			{
@@ -280,7 +261,6 @@ void MusicSystemMod::installHooks()
 					}
 				}
 
-				bool replaced = false;
 				if (std::find(
 						musicSettingInfo.TriggerIDs.begin(),
 						musicSettingInfo.TriggerIDs.end(),
@@ -292,45 +272,46 @@ void MusicSystemMod::installHooks()
 						switch ((CustomPlaylistMenuItem::Option)musicSettingInfo.MenuItem->getValue())
 						{
 						default:
-							replaced = selectNoChange(musicSettingInfo);
+							s_corePlayBgm_retVal = selectNoChange(musicSettingInfo);
 							break;
 						case CustomPlaylistMenuItem::Option::MusicOff:
-							replaced = selectMusicOff(musicSettingInfo);
+							s_corePlayBgm_retVal = selectMusicOff(musicSettingInfo);
 							break;
 						case CustomPlaylistMenuItem::Option::AlwaysOriginal:
 						case CustomPlaylistMenuItem::Option::AlwaysArranged:
 						case CustomPlaylistMenuItem::Option::PreferredMix:
-							replaced = selectMix(musicSettingInfo);
+							s_corePlayBgm_retVal = selectMix(musicSettingInfo);
 							break;
 						case CustomPlaylistMenuItem::Option::Playlist:
 						case CustomPlaylistMenuItem::Option::Favorites:
-							replaced = selectPlaylist(musicSettingInfo);
+							s_corePlayBgm_retVal = selectPlaylist(musicSettingInfo);
 							break;
 						}
 						break;
 					case MusicSettingType::DlcMusicReplace:
 						if (musicSettingInfo.MenuItem->getValue() != 0)
 						{
-							replaced = selectDlcMusic(musicSettingInfo);
+							s_corePlayBgm_retVal = selectDlcMusic(musicSettingInfo);
 						}
 						break;
 					}
 				}
 
-				if (replaced)
+				if (s_corePlayBgm_retVal.has_value())
 				{
-					return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+					break;
 				}
 			}
 
-			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+			s_isPlayerOverridden[playerId] = s_corePlayBgm_retVal.has_value();
+			return s_corePlayBgm_retVal.has_value() ? REFRAMEWORK_HOOK_SKIP_ORIGINAL : REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
 		[](void **retval, auto...)
 		{
-			if (s_corePlayBgm_skip)
+			if (s_corePlayBgm_retVal.has_value())
 			{
-				s_corePlayBgm_skip = false;
-				*retval = s_corePlayBgm_retVal;
+				*retval = (void *)std::move(*s_corePlayBgm_retVal);
+				s_corePlayBgm_retVal.reset();
 			}
 		}));
 
@@ -346,10 +327,6 @@ void MusicSystemMod::installHooks()
 				bool isArranged = (std::uint8_t)(intptr_t)argv[2];
 
 				std::uint32_t playerId = sound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
-				if (playerId >= s_isPlayerArranged.size())
-				{
-					s_isPlayerArranged.resize(playerId + 1);
-				}
 				s_isPlayerArranged[playerId] = isArranged;
 			}
 
@@ -362,12 +339,18 @@ void MusicSystemMod::installHooks()
 		[](int argc, void **argv, auto...)
 		{
 			Object sound = Object(argv[1]);
-			std::uint32_t playerId = sound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
-			bool isArranged = playerId < s_isPlayerArranged.size() ? s_isPlayerArranged[playerId] : false;
 
+			// Restore BGM arrange flag
+			std::uint32_t playerId = sound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
+			bool isArranged = s_isPlayerArranged[playerId];
 			s_disableEnableBgmArrangeHook = true;
 			sound["_Manager"].set<bool>("EnableBgmArrange", isArranged);
 			s_disableEnableBgmArrangeHook = false;
+
+			if (s_isPlayerOverridden[playerId])
+			{
+				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
 
 			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
