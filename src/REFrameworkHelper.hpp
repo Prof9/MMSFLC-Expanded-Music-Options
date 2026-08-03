@@ -6,6 +6,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <reframework/API.hpp>
@@ -30,6 +31,7 @@ namespace REFrameworkHelper
 		else
 		{
 			void *buf = 0;
+			static_assert(sizeof(arg) <= sizeof(buf));
 			memcpy_s(&buf, sizeof(buf), &arg, sizeof(arg));
 			return buf;
 		}
@@ -54,15 +56,16 @@ namespace REFrameworkHelper
 	struct Object
 	{
 		template <typename T>
-		struct ObjectGetterSetterByIndex;
-		template <typename T>
-		struct ObjectGetterSetterByName;
-
-		template <typename T>
 		struct ObjectGetterSetter
 		{
 		public:
 			Object m_obj;
+			std::variant<std::size_t, std::string_view> m_key;
+
+			ObjectGetterSetter(Object obj, std::size_t idx) : m_obj(obj), m_key(idx) {}
+
+			// Constructor for name
+			ObjectGetterSetter(Object obj, std::string_view name) : m_obj(obj), m_key(name) {}
 
 			operator T() const
 			{
@@ -125,22 +128,22 @@ namespace REFrameworkHelper
 			}
 
 			template <typename TInner = Object>
-			ObjectGetterSetterByName<TInner> operator[](std::string_view name)
+			ObjectGetterSetter<TInner> operator[](std::string_view name)
 			{
-				return ObjectGetterSetterByName<TInner>(getInternal(), name);
+				return ObjectGetterSetter<TInner>(getInternal(), name);
 			}
 
 			template <typename TInner = Object>
-			ObjectGetterSetterByIndex<TInner> operator[](std::size_t idx)
+			ObjectGetterSetter<TInner> operator[](std::size_t idx)
 			{
-				return ObjectGetterSetterByIndex<TInner>(getInternal(), idx);
+				return ObjectGetterSetter<TInner>(getInternal(), idx);
 			}
 
 			template <typename TInner = Object, class Enum>
 				requires std::is_enum_v<Enum>
-			ObjectGetterSetterByIndex<TInner> operator[](Enum e)
+			ObjectGetterSetter<TInner> operator[](Enum e)
 			{
-				return ObjectGetterSetterByIndex<TInner>(getInternal(), std::to_underlying(e));
+				return ObjectGetterSetter<TInner>(getInternal(), std::to_underlying(e));
 			}
 
 			template <typename TInner = Object>
@@ -169,57 +172,24 @@ namespace REFrameworkHelper
 			}
 
 		protected:
-			ObjectGetterSetter(Object obj) : m_obj(obj) {}
-
-			virtual T getInternal() const = 0;
-			virtual void setInternal(T value) const = 0;
-		};
-
-		template <typename T>
-		struct ObjectGetterSetterByIndex : ObjectGetterSetter<T>
-		{
-			ObjectGetterSetterByIndex(Object obj, std::size_t index) : ObjectGetterSetter<T>(obj), m_index(index) {}
-
-			T operator=(T value) const
-			{
-				return ObjectGetterSetter<T>::operator=(value);
-			}
-
-		protected:
-			std::size_t m_index;
-
 			T getInternal() const
 			{
-				return this->m_obj.get<T>(m_index);
+				return std::visit(
+					[this](auto &&key)
+					{
+						return m_obj.get<T>(key);
+					},
+					m_key);
 			}
 
 			void setInternal(T value) const
 			{
-				this->m_obj.set<T>(m_index, value);
-			}
-		};
-
-		template <typename T>
-		struct ObjectGetterSetterByName : ObjectGetterSetter<T>
-		{
-			ObjectGetterSetterByName(Object obj, std::string_view name) : ObjectGetterSetter<T>(obj), m_name(name) {}
-
-			T operator=(T value) const
-			{
-				return ObjectGetterSetter<T>::operator=(value);
-			}
-
-		protected:
-			std::string_view m_name;
-
-			T getInternal() const
-			{
-				return this->m_obj.get<T>(m_name);
-			}
-
-			void setInternal(T value) const
-			{
-				this->m_obj.set<T>(m_name, value);
+				std::visit(
+					[this, value](auto &&key)
+					{
+						m_obj.set<T>(key, value);
+					},
+					m_key);
 			}
 		};
 
@@ -261,22 +231,22 @@ namespace REFrameworkHelper
 		}
 
 		template <typename T = Object>
-		ObjectGetterSetterByName<T> operator[](std::string_view name)
+		ObjectGetterSetter<T> operator[](std::string_view name)
 		{
-			return ObjectGetterSetterByName<T>(*this, name);
+			return ObjectGetterSetter<T>(*this, name);
 		}
 
 		template <typename T = Object>
-		ObjectGetterSetterByIndex<T> operator[](std::size_t idx)
+		ObjectGetterSetter<T> operator[](std::size_t idx)
 		{
-			return ObjectGetterSetterByIndex<T>(*this, idx);
+			return ObjectGetterSetter<T>(*this, idx);
 		}
 
 		template <typename T = Object, class Enum>
 			requires std::is_enum_v<Enum>
-		ObjectGetterSetterByIndex<T> operator[](Enum e)
+		ObjectGetterSetter<T> operator[](Enum e)
 		{
-			return ObjectGetterSetterByIndex<T>(*this, std::to_underlying(e));
+			return ObjectGetterSetter<T>(*this, std::to_underlying(e));
 		}
 
 		template <typename T = Object>
