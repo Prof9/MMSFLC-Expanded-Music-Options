@@ -1,9 +1,9 @@
 #include <cassert>
-#include <cstdbool>
 #include <cstdint>
 #include <cstring>
 #include <format>
 #include <optional>
+#include <span>
 #include <stdfloat>
 #include <string_view>
 

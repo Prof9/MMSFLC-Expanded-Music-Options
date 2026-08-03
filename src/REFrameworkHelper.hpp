@@ -6,6 +6,7 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <reframework/API.hpp>
 
@@ -40,7 +41,7 @@ namespace REFrameworkHelper
 		reframework::API::Method *m_method;
 		int m_hookId;
 
-		bool valid() { return m_method != nullptr && m_hookId != -1; }
+		bool valid() const { return m_method != nullptr && m_hookId != -1; }
 
 		HookRef() : HookRef(nullptr, -1) {}
 		HookRef(reframework::API::Method *method, int hookId)
@@ -113,7 +114,7 @@ namespace REFrameworkHelper
 				requires std::is_enum_v<Enum>
 			TInner get(Enum e) const
 			{
-				return getInternal.get<TInner>(e);
+				return getInternal().get<TInner>(e);
 			}
 
 			template <typename TInner = Object, class Enum>
@@ -306,37 +307,39 @@ namespace REFrameworkHelper
 			reframework::API::TypeDefinition *type = this->m_object->get_type_definition();
 			assert(type != nullptr);
 
-			// Call function
 			reframework::API::Method *function = type->find_method(funcName);
+			if (function == nullptr)
+			{
+				api->log_error("call: unknown function {}.{}", type->get_full_name(), funcName);
+				assert(0);
+				return T();
+			}
 			if (function->is_static())
 			{
 				api->log_error("call: function {}.{} is static", type->get_full_name(), funcName);
 				assert(0);
+				return T();
 			}
-			else if (function != nullptr)
+
+			// Call function
+			std::array<void *, sizeof...(args)> argv = {toCallArg(args)...};
+			reframework::InvokeRet ret = function->invoke(this->m_object, argv);
+			if constexpr (std::is_void_v<T>)
 			{
-				std::vector<void *> argv;
-				([&]
-				 { argv.push_back((void *)args); }(),
-				 ...);
-				reframework::InvokeRet ret = function->invoke(this->m_object, argv);
-				if constexpr (std::is_void_v<T>)
-				{
-					return;
-				}
-				else
-				{
-					return *((T *)&ret);
-				}
+				return;
 			}
-
-			api->log_error("call: unknown function {}.{}", type->get_full_name(), funcName);
-			assert(0);
-
-			return T();
+			else
+			{
+				T result{};
+				std::memcpy(&result, &ret, sizeof(T));
+				return result;
+			}
 		}
 
-		operator void *() const { return this->m_object; }
+		operator void *() const
+		{
+			return this->m_object;
+		}
 
 	private:
 		template <typename T>
@@ -382,27 +385,28 @@ namespace REFrameworkHelper
 
 			// Call function
 			reframework::API::Method *function = m_type->find_method(funcName);
+			if (function == nullptr)
+			{
+				api->log_error("call: unknown function {}.{}", m_type->get_full_name(), funcName);
+				assert(0);
+				return T();
+			}
 			if (!function->is_static())
 			{
 				api->log_error("call: function {}.{} is not static", m_type->get_full_name(), funcName);
 				assert(0);
+				return T();
 			}
-			if (function != nullptr)
+
+			// Call function
+			if constexpr (std::is_same_v<std::decay_t<Object>, T>)
 			{
-				if constexpr (std::is_same_v<std::decay_t<Object>, T>)
-				{
-					return Object(function->call<void *>(api->get_vm_context(), toCallArg(args)...));
-				}
-				else
-				{
-					return function->call<T>(api->get_vm_context(), toCallArg(args)...);
-				}
+				return Object(function->call<void *>(api->get_vm_context(), toCallArg(args)...));
 			}
-
-			api->log_error("call: unknown function {}.{}", m_type->get_full_name(), funcName);
-			assert(0);
-
-			return T();
+			else
+			{
+				return function->call<T>(api->get_vm_context(), toCallArg(args)...);
+			}
 		}
 	};
 
