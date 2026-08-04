@@ -93,8 +93,8 @@ private:
 	static inline bool s_initialized = false;
 	static inline std::vector<REFrameworkHelper::HookRef> s_hooks;
 
-	static inline std::unordered_map<size_t, bool> s_isPlayerArranged;
-	static inline std::unordered_map<size_t, bool> s_isPlayerOverridden;
+	static inline std::unordered_map<std::size_t, bool> s_isPlayerArranged;
+	static inline std::unordered_map<std::size_t, bool> s_isPlayerOverridden;
 
 	static inline Settings s_settings;
 

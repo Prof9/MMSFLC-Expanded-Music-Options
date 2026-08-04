@@ -334,27 +334,64 @@ void MusicSystemMod::installHooks()
 		},
 		nullptr));
 
+	static std::vector<app::cSound_Base::PlayingBgmStetaEnum> updateBgmPlayType_playingBgmInfoStates;
+	static Object updateBgmPlayType_sound;
 	s_hooks.emplace_back(hook(
 		"app.cSound_Base.updateBgmPlayType",
 		[](int argc, void **argv, auto...)
 		{
 			Object sound = Object(argv[1]);
+			updateBgmPlayType_sound = sound;
 
-			// Restore BGM arrange flag
 			std::uint32_t playerId = sound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
-			bool isArranged = s_isPlayerArranged[playerId];
-			s_disableEnableBgmArrangeHook = true;
-			sound["_Manager"].set<bool>("EnableBgmArrange", isArranged);
-			s_disableEnableBgmArrangeHook = false;
-
 			if (s_isPlayerOverridden[playerId])
 			{
-				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+				// Set BGM arrange flag to what we know it to be
+				bool isArranged = s_isPlayerArranged[playerId];
+				sound["_Manager"].set<bool>("EnableBgmArrange", isArranged);
+			}
+			else
+			{
+				// Allow updateBgmPlayType to update Arranged flag
+				s_disableEnableBgmArrangeHook = true;
+			}
+
+			// Set playing BGM state to None temporarily for our overridden players
+			// This way they will be skipped by updateBgmPlayType
+			Object playingBgmInfoList = sound["_PlayingBgmInfoList"];
+			std::int32_t playingBgmInfoListLength = playingBgmInfoList.get<std::int32_t>("Length");
+			updateBgmPlayType_playingBgmInfoStates.resize(playingBgmInfoListLength);
+			for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
+			{
+				Object playingBgmInfo = playingBgmInfoList[i];
+				updateBgmPlayType_playingBgmInfoStates[i] = (app::cSound_Base::PlayingBgmStetaEnum)playingBgmInfo.get<std::int8_t>("State");
+
+				if (s_isPlayerOverridden[i])
+				{
+					playingBgmInfo.set<std::int8_t>("State", app::cSound_Base::PlayingBgmStetaEnum::None);
+				}
 			}
 
 			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
-		nullptr));
+		[](auto...)
+		{
+			Object sound = updateBgmPlayType_sound;
+
+			s_disableEnableBgmArrangeHook = false;
+
+			// Restore original playing BGM states
+			Object playingBgmInfoList = sound["_PlayingBgmInfoList"];
+			std::int32_t playingBgmInfoListLength = playingBgmInfoList.get<std::int32_t>("Length");
+			for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
+			{
+				Object playingBgmInfo = playingBgmInfoList[i];
+				if (updateBgmPlayType_playingBgmInfoStates[i] == app::cSound_Base::PlayingBgmStetaEnum::None)
+				{
+					playingBgmInfo.set<std::int8_t>("State", updateBgmPlayType_playingBgmInfoStates[i]);
+				}
+			}
+		}));
 
 	static std::uint16_t launcherReplacedBgmId = getType("app.sound.SoundMilkyDefine").get<std::uint16_t>("INVALID_BGM_ID");
 	s_hooks.emplace_back(hook(
