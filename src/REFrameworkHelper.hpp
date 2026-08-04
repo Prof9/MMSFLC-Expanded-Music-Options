@@ -101,6 +101,13 @@ namespace REFrameworkHelper
 				getInternal().set<TInner>(fieldName, value, isValueType);
 			}
 
+			template <typename TInner = Object, class EnumValue>
+				requires std::is_enum_v<EnumValue>
+			void set(std::string_view fieldName, EnumValue value, bool isValueType = false) const
+			{
+				getInternal().set<TInner>(fieldName, std::to_underlying(value), isValueType);
+			}
+
 			template <typename TInner = Object>
 			TInner get(std::size_t idx) const
 			{
@@ -111,6 +118,13 @@ namespace REFrameworkHelper
 			void set(std::size_t idx, TInner value) const
 			{
 				getInternal().set<TInner>(idx, value);
+			}
+
+			template <typename TInner = Object, class EnumValue>
+				requires std::is_enum_v<EnumValue>
+			void set(std::size_t idx, EnumValue value) const
+			{
+				getInternal().set<TInner>(idx, std::to_underlying(value));
 			}
 
 			template <typename TInner = Object, class Enum>
@@ -125,6 +139,13 @@ namespace REFrameworkHelper
 			void set(Enum e, TInner value) const
 			{
 				getInternal().set<TInner>(e, value);
+			}
+
+			template <typename TInner = Object, class Enum, class EnumValue>
+				requires std::is_enum_v<Enum> && std::is_enum_v<EnumValue>
+			void set(Enum e, EnumValue value) const
+			{
+				getInternal().set<TInner>(e, std::to_underlying(value));
 			}
 
 			template <typename TInner = Object>
@@ -225,9 +246,30 @@ namespace REFrameworkHelper
 
 		template <typename T = Object, class Enum>
 			requires std::is_enum_v<Enum>
+		void set(std::string_view fieldName, Enum value, bool isValueType = false) const
+		{
+			this->set<T>(fieldName, static_cast<T>(std::to_underlying(value)), isValueType);
+		}
+
+		template <typename T = Object, class Enum>
+			requires std::is_enum_v<Enum>
 		void set(Enum e, T value) const
 		{
 			this->set(std::to_underlying(e), value);
+		}
+
+		template <typename T = Object, class Enum, class EnumValue>
+			requires std::is_enum_v<EnumValue> && std::is_enum_v<EnumValue>
+		void set(Enum e, EnumValue value) const
+		{
+			this->set<T>(e, static_cast<T>(std::to_underlying(value)));
+		}
+
+		template <typename T = Object, class EnumValue>
+			requires std::is_enum_v<EnumValue>
+		void set(std::size_t idx, EnumValue value) const
+		{
+			this->set<T>(idx, static_cast<T>(std::to_underlying(value)));
 		}
 
 		template <typename T = Object>
