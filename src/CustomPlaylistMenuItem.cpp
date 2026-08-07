@@ -203,6 +203,26 @@ CustomPlaylistMenuItem::~CustomPlaylistMenuItem()
 	setCustomPlaylist((void *)nullptr);
 }
 
+void CustomPlaylistMenuItem::setValue(std::int32_t value) const
+{
+	CustomPlaylistMenuItem::Option oldValue = (CustomPlaylistMenuItem::Option)getValue();
+	MenuItem::setValue(value);
+	CustomPlaylistMenuItem::Option newValue = (CustomPlaylistMenuItem::Option)getValue();
+
+	// Check if current player is overridden
+	constexpr std::array mixMusicOptions{
+		CustomPlaylistMenuItem::Option::AlwaysOriginal,
+		CustomPlaylistMenuItem::Option::AlwaysArranged,
+		CustomPlaylistMenuItem::Option::PreferredMix,
+	};
+	// If we are changing to or from an option that can replace music...
+	if (!std::ranges::contains(mixMusicOptions, oldValue) ||
+		!std::ranges::contains(mixMusicOptions, newValue))
+	{
+		MusicSystemMod::reloadBgmForMenuItem(this);
+	}
+}
+
 bool CustomPlaylistMenuItem::canEnter()
 {
 	switch (m_state)
@@ -280,12 +300,12 @@ bool CustomPlaylistMenuItem::onUpdate()
 					Object playingBgmInfo = playingBgmInfoList[i];
 					if (playingBgmInfo != nullptr && playingBgmInfo.get<bool>("IsPlaying"))
 					{
-						// Which music is playing doesn't matter for pause
+						// Which music is playing doesn't matter for stop
 						std::optional<MusicSystemMod::BgmTriggerInfo> bgmTriggerInfo = MusicSystemMod::getBgmTriggerInfo(0);
 						if (bgmTriggerInfo.has_value())
 						{
 							Object container = bgmTriggerInfo.value().Container;
-							std::uint32_t triggerId = bgmTriggerInfo.value().PauseTriggerID;
+							std::uint32_t triggerId = bgmTriggerInfo.value().FadeOutTriggerID;
 							Object playerObject = playingBgmInfo["PlayerObject"];
 
 							container.call(
@@ -402,7 +422,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 			}
 			m_ingameMusicPlayer = false;
 
-			// resume any playing in-game music
+			// restart any playing in-game music
 			Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
 			Object sound = soundMilkyManager["_IngameSoundSystem"];
 			if (sound != nullptr)
@@ -414,28 +434,7 @@ bool CustomPlaylistMenuItem::onUpdate()
 					Object playingBgmInfo = playingBgmInfoList[i];
 					if (playingBgmInfo != nullptr && playingBgmInfo.get<bool>("IsPlaying"))
 					{
-						// Which music is playing doesn't matter for resume
-						std::optional<MusicSystemMod::BgmTriggerInfo> bgmTriggerInfo = MusicSystemMod::getBgmTriggerInfo(0);
-						if (bgmTriggerInfo.has_value())
-						{
-							Object container = bgmTriggerInfo.value().Container;
-							std::uint32_t triggerId = bgmTriggerInfo.value().ResumeTriggerID;
-							Object playerObject = playingBgmInfo["PlayerObject"];
-
-							container.call(
-								"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
-								triggerId,
-								playerObject,
-								nullptr,
-								0xFFFFFFFF,
-								false,
-								0,
-								0,
-								nullptr,
-								nullptr,
-								nullptr,
-								nullptr);
-						}
+						sound.call("basePlayBgm", playingBgmInfo.get<std::uint16_t>("OriginalId"), 0, i);
 					}
 				}
 			}

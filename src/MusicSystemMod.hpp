@@ -72,6 +72,8 @@ public:
 	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged, REFrameworkHelper::Object container, std::uint32_t triggerId);
 	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged);
 
+	static void reloadBgmForMenuItem(const MenuItem *menuItem);
+
 private:
 	static void installHooks();
 	static void uninstallHooks();
@@ -80,6 +82,8 @@ private:
 
 	static void loadSettings();
 	static void saveSettings();
+
+	static const MusicSettingInfo *getMusicSettingInfoForMenuItem(const MenuItem *menuItem);
 
 	// Constants
 	static const std::map<Guid, std::map<via::Language, char16_t const *>> STRINGS;
@@ -94,6 +98,7 @@ private:
 	static inline std::vector<REFrameworkHelper::HookRef> s_hooks;
 
 	static inline std::unordered_map<std::size_t, bool> s_isPlayerArranged;
+	static inline std::unordered_map<std::size_t, std::uint32_t> s_playerPlayTriggerID;
 	static inline std::unordered_map<std::size_t, bool> s_isPlayerOverridden;
 
 	static inline Settings s_settings;

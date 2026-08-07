@@ -220,3 +220,59 @@ bool MusicSystemMod::playBgm(Object srcObj, std::uint16_t bgmId, bool isArranged
 
 	return playBgm(srcObj, bgmId, isArranged, container, triggerId);
 }
+
+const MusicSystemMod::MusicSettingInfo *MusicSystemMod::getMusicSettingInfoForMenuItem(const MenuItem *menuItem)
+{
+	auto it = std::ranges::find_if(
+		s_musicSettingInfoList,
+		[menuItem](MusicSettingInfo &info)
+		{
+			return info.MenuItem.get() == menuItem;
+		});
+
+	return it == s_musicSettingInfoList.end() ? nullptr : &*it;
+}
+
+void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem)
+{
+	// Find music setting info belonging to this menu item
+	const MusicSystemMod::MusicSettingInfo *musicSettingInfo = MusicSystemMod::getMusicSettingInfoForMenuItem(menuItem);
+	if (musicSettingInfo == nullptr)
+	{
+		return;
+	}
+
+	Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
+	Object ingameSound = soundMilkyManager["_IngameSoundSystem"];
+	if (ingameSound != nullptr)
+	{
+		// Go through all loaded BGMs
+		Object playingBgmInfoList = ingameSound["_PlayingBgmInfoList"];
+		std::int32_t playingBgmInfoListLength = playingBgmInfoList.get<std::int32_t>("Length");
+		for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
+		{
+			Object playingBgmInfo = playingBgmInfoList[i];
+
+			// Check if this player is overridden by this music setting
+			uint32_t playTriggerID = s_playerPlayTriggerID[i];
+			auto it = std::ranges::find(musicSettingInfo->TriggerIDs, playTriggerID);
+			if (it != musicSettingInfo->TriggerIDs.end())
+			{
+				app::cSound_Base::PlayingBgmStetaEnum bgmState = (app::cSound_Base::PlayingBgmStetaEnum)playingBgmInfo.get<std::uint8_t>("State");
+				std::uint16_t bgmId = playingBgmInfo.get<std::uint16_t>("OriginalId");
+
+				// This basically replicates app.cSound_Base.updateBgmPlayType() in part
+				switch (bgmState)
+				{
+				case app::cSound_Base::PlayingBgmStetaEnum::Play:
+					ingameSound.call("baseChangeBgm", bgmId, 0, i, -1);
+					break;
+				case app::cSound_Base::PlayingBgmStetaEnum::Pause:
+					ingameSound.call("coreStopBgm", ingameSound["_BgmSetting"].get<std::uint32_t>("DefaultStopTriggerID"), i);
+					playingBgmInfo.set<std::uint8_t>("State", app::cSound_Base::PlayingBgmStetaEnum::PauseStop);
+					break;
+				}
+			}
+		}
+	}
+}

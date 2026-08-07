@@ -303,6 +303,7 @@ void MusicSystemMod::installHooks()
 				}
 			}
 
+			s_playerPlayTriggerID[playerId] = triggerId;
 			s_isPlayerOverridden[playerId] = s_corePlayBgm_retVal.has_value();
 			return s_corePlayBgm_retVal.has_value() ? REFRAMEWORK_HOOK_SKIP_ORIGINAL : REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
@@ -364,7 +365,8 @@ void MusicSystemMod::installHooks()
 			for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
 			{
 				Object playingBgmInfo = playingBgmInfoList[i];
-				updateBgmPlayType_playingBgmInfoStates[i] = (app::cSound_Base::PlayingBgmStetaEnum)playingBgmInfo.get<std::int8_t>("State");
+				app::cSound_Base::PlayingBgmStetaEnum bgmState = (app::cSound_Base::PlayingBgmStetaEnum)playingBgmInfo.get<std::int8_t>("State");
+				updateBgmPlayType_playingBgmInfoStates[i] = bgmState;
 
 				if (s_isPlayerOverridden[i])
 				{
@@ -386,9 +388,11 @@ void MusicSystemMod::installHooks()
 			for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
 			{
 				Object playingBgmInfo = playingBgmInfoList[i];
-				if (updateBgmPlayType_playingBgmInfoStates[i] == app::cSound_Base::PlayingBgmStetaEnum::None)
+				app::cSound_Base::PlayingBgmStetaEnum oldBgmState = updateBgmPlayType_playingBgmInfoStates[i];
+				app::cSound_Base::PlayingBgmStetaEnum newBgmState = (app::cSound_Base::PlayingBgmStetaEnum)playingBgmInfo.get<std::int8_t>("State");
+				if (newBgmState == app::cSound_Base::PlayingBgmStetaEnum::None)
 				{
-					playingBgmInfo.set<std::int8_t>("State", updateBgmPlayType_playingBgmInfoStates[i]);
+					playingBgmInfo.set<std::int8_t>("State", oldBgmState);
 				}
 			}
 		}));

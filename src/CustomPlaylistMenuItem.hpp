@@ -33,6 +33,8 @@ public:
 	CustomPlaylistMenuItem(const std::filesystem::path &playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<MenuItem::Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue = 0);
 	virtual ~CustomPlaylistMenuItem();
 
+	virtual void setValue(std::int32_t value) const;
+
 	bool canEnter();
 	bool onEnter();
 	bool onUpdate();

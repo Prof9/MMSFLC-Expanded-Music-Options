@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <vector>
 
 #include "Guid.hpp"
@@ -35,7 +36,7 @@ public:
 	virtual ~MenuItem() = default;
 
 	std::int32_t getValue() const;
-	void setValue(std::int32_t value) const;
+	virtual void setValue(std::int32_t value) const;
 	std::int32_t getCursor() const;
 
 	virtual bool canEnter();
