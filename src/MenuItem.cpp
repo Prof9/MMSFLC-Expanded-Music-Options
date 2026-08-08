@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "MenuItem.hpp"
+#include "MusicSystemMod.hpp"
 
 std::int32_t MenuItem::getValue() const
 {
@@ -37,6 +38,11 @@ std::int32_t MenuItem::getCursor() const
 		}
 	}
 	return 0;
+}
+
+bool MenuItem::isDefaultValue() const
+{
+	return getValue() == m_defaultValue;
 }
 
 bool MenuItem::canEnter()

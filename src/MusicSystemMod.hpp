@@ -5,6 +5,9 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "AudioMenuExtension.hpp"
@@ -19,7 +22,7 @@ public:
 	enum struct MusicSettingType
 	{
 		CustomPlaylist,
-		DlcMusicReplace,
+		ReplaceMusic,
 	};
 
 	struct BgmTriggerInfo
@@ -72,7 +75,7 @@ public:
 	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged, REFrameworkHelper::Object container, std::uint32_t triggerId);
 	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged);
 
-	static void reloadBgmForMenuItem(const MenuItem *menuItem);
+	static void reloadBgmForMenuItem(const MenuItem *menuItem, bool restartBgm);
 
 private:
 	static void installHooks();
@@ -84,6 +87,8 @@ private:
 	static void saveSettings();
 
 	static const MusicSettingInfo *getMusicSettingInfoForMenuItem(const MenuItem *menuItem);
+	static std::optional<bool> getOverrideMixForTriggerID(std::uint32_t playTriggerID);
+	static void setEnableBgmArrangeForced(bool isArranged);
 
 	// Constants
 	static const std::map<Guid, std::map<via::Language, char16_t const *>> STRINGS;
@@ -100,7 +105,9 @@ private:
 	static inline std::unordered_map<std::size_t, bool> s_isPlayerArranged;
 	static inline std::unordered_map<std::size_t, std::uint32_t> s_playerPlayTriggerID;
 	static inline std::unordered_map<std::size_t, bool> s_isPlayerOverridden;
+	static inline std::unordered_map<std::size_t, bool> s_suppressUpdatePlayType;
 
+	static inline bool s_disableEnableBgmArrangeHook = false;
 	static inline Settings s_settings;
 
 	static inline std::shared_ptr<CustomPlaylistMenuItem> s_menuItemRealWorldBgm;

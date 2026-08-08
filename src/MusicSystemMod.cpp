@@ -1,6 +1,7 @@
 #include <Enums_Internal.hpp>
 
 #include <memory>
+#include <optional>
 
 #include "MessageManager.hpp"
 #include "MusicSystemMod.hpp"
@@ -196,8 +197,7 @@ bool MusicSystemMod::playBgm(Object srcObj, std::uint16_t bgmId, bool isArranged
 	{
 		isArranged = false;
 	}
-	Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
-	soundMilkyManager.set<bool>("EnableBgmArrange", isArranged);
+	MusicSystemMod::setEnableBgmArrangeForced(isArranged);
 
 	return true;
 }
@@ -233,7 +233,138 @@ const MusicSystemMod::MusicSettingInfo *MusicSystemMod::getMusicSettingInfoForMe
 	return it == s_musicSettingInfoList.end() ? nullptr : &*it;
 }
 
-void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem)
+std::optional<bool> MusicSystemMod::getOverrideMixForTriggerID(std::uint32_t playTriggerID)
+{
+	bool foundAlwaysOriginal = false;
+	bool foundAlwaysArranged = false;
+	bool foundPreferOriginal = false;
+	bool foundPreferArranged = false;
+	Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
+	Object dlcContentsManager = getSingleton("app.DLCContentsManager");
+	for (MusicSettingInfo &musicSettingInfo : s_musicSettingInfoList)
+	{
+		if (musicSettingInfo.RequiredDLC != app::DLCContentsManager::DLC_TYPE::INVALID)
+		{
+			if (!dlcContentsManager.call<bool>("getHasDLC", musicSettingInfo.RequiredDLC))
+			{
+				continue;
+			}
+		}
+
+		if (std::ranges::find(musicSettingInfo.TriggerIDs, playTriggerID) != musicSettingInfo.TriggerIDs.end())
+		{
+			switch (musicSettingInfo.Type)
+			{
+			case MusicSettingType::CustomPlaylist:
+				switch ((CustomPlaylistMenuItem::Option)musicSettingInfo.MenuItem->getValue())
+				{
+				case CustomPlaylistMenuItem::Option::AlwaysOriginal:
+					foundAlwaysOriginal = true;
+					break;
+				case CustomPlaylistMenuItem::Option::AlwaysArranged:
+					foundAlwaysArranged = true;
+					break;
+				case CustomPlaylistMenuItem::Option::PreferredMix:
+				{
+					Object playlist = CustomPlaylistMenuItem::getPreferredMixPlaylist();
+					Object musicPlayerBgmDefineList = getType("app.sound.SoundMilkyDefine")["MusicPlayerBgmDefineList"];
+					Object bgmSettingDataList = soundMilkyManager["_BgmSettingDataList"];
+					Type musicPlayerBgmDefineType = getType("app.sound.SoundMilkyDefine.MusicPlayerBgmDefine");
+					reframework::API::Field *musicPlayerBgmDefineType_Series = musicPlayerBgmDefineType.m_type->find_field("Series");
+					reframework::API::Field *musicPlayerBgmDefineType_BgmSettingIndex = musicPlayerBgmDefineType.m_type->find_field("BgmSettingIndex");
+
+					/// Map repeat songs (e.g. Winner! in SF2) to their original trigger IDs
+					const static std::unordered_map<std::uint32_t, std::uint32_t> MAP_REPEAT_TRIGGER_IDS = {
+						{0x412B3875, 0xE994DBDE}, // SF2: Cheerful Indoors -> SF1
+						{0xC1004ADD, 0x6DFDA90A}, // SF2: Cheerful Company -> SF1
+						{0xB166E74D, 0x1895189D}, // SF2: Moving Scene -> SF1
+						{0xA7A6A9EC, 0xE007FD11}, // SF2: Winner! (SF1 Version) -> SF1
+						{0x24628ADA, 0xA5C48DF3}, // SF2: Winner! - Short (SF1 Version) -> SF1
+						{0x4360DD04, 0x0DB8091D}, // SF2: Loser -> SF1
+						{0x93D25171, 0xD19E7AF5}, // SF2: Game Over -> SF1
+						{0xC2ABB29D, 0x522A7C35}, // SF2: Loneliness -> SF1
+						{0x295EEC52, 0xE994DBDE}, // SF3: Cheerful Indoors -> SF1
+						{0xE1AD6054, 0x4C86D9BA}, // SF3: Anthem of the Solitary -> SF2
+						{0x5448F0F6, 0x6DFDA90A}, // SF3: Cheerful Company -> SF1
+						{0xA98540F8, 0xBB2D3340}, // SF3: My Friends -> SF2
+						{0x26957CE4, 0x1895189D}, // SF3: Moving Scene -> SF1
+						{0x5A095B0E, 0xD19E7AF5}, // SF3: Game Over -> SF1
+						{0x6ACC1BA0, 0x0DB8091D}, // SF3: Loser... -> SF1
+					};
+					uint32_t checkTriggerID = playTriggerID;
+					if (auto it = MAP_REPEAT_TRIGGER_IDS.find(checkTriggerID);
+						it != MAP_REPEAT_TRIGGER_IDS.end())
+					{
+						checkTriggerID = it->second;
+					}
+
+					std::int32_t playlistLen = playlist.get<std::int32_t>("Count");
+					for (std::int32_t i = 0; i < playlistLen; ++i)
+					{
+						Object favMusicInfo = playlist[i];
+						std::uint16_t musicId = favMusicInfo.get<std::uint16_t>("musicId");
+
+						std::uint64_t musicPlayerBgmDefineRaw = musicPlayerBgmDefineList.get<std::uint64_t>(musicId);
+						std::uint8_t series = *(std::uint8_t *)musicPlayerBgmDefineType_Series->get_data_raw(&musicPlayerBgmDefineRaw, true);
+						std::uint8_t bgmSettingIndex = *(std::uint8_t *)musicPlayerBgmDefineType_BgmSettingIndex->get_data_raw(&musicPlayerBgmDefineRaw, true);
+
+						std::uint32_t playerTriggerId = bgmSettingDataList[series]["BgmId2TriggerIdList"][bgmSettingIndex].get<std::uint32_t>("PlayTriggerId");
+
+						if (checkTriggerID == playerTriggerId)
+						{
+							if (favMusicInfo.get<bool>("isArrange"))
+							{
+								foundPreferArranged = true;
+							}
+							else
+							{
+								foundPreferOriginal = true;
+							}
+						}
+					}
+					break;
+				}
+				default:
+					break;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	if (foundAlwaysArranged && !foundAlwaysOriginal ||
+		foundPreferArranged && !foundPreferOriginal)
+	{
+		return true;
+	}
+	if (foundAlwaysOriginal && !foundAlwaysArranged ||
+		foundPreferOriginal && !foundPreferArranged)
+	{
+		return false;
+	}
+	if (foundAlwaysOriginal && foundAlwaysArranged ||
+		foundPreferOriginal && foundPreferArranged)
+	{
+		// We equally want original and arranged
+		// Choose random 50/50
+		std::int32_t r = getType("via.MathEx").call<std::int32_t>("randomRangeIndex", 0, 2);
+		return r == 1 ? true : false;
+	}
+
+	return {};
+}
+
+void MusicSystemMod::setEnableBgmArrangeForced(bool isArranged)
+{
+	s_disableEnableBgmArrangeHook = true;
+	Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
+	soundMilkyManager.set<bool>("EnableBgmArrange", isArranged);
+	s_disableEnableBgmArrangeHook = false;
+}
+
+void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem, bool restartBgm)
 {
 	// Find music setting info belonging to this menu item
 	const MusicSystemMod::MusicSettingInfo *musicSettingInfo = MusicSystemMod::getMusicSettingInfoForMenuItem(menuItem);
@@ -254,23 +385,81 @@ void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem)
 			Object playingBgmInfo = playingBgmInfoList[i];
 
 			// Check if this player is overridden by this music setting
-			uint32_t playTriggerID = s_playerPlayTriggerID[i];
-			auto it = std::ranges::find(musicSettingInfo->TriggerIDs, playTriggerID);
-			if (it != musicSettingInfo->TriggerIDs.end())
+			std::uint32_t playTriggerID = s_playerPlayTriggerID[i];
+			if (std::ranges::find(musicSettingInfo->TriggerIDs, playTriggerID) != musicSettingInfo->TriggerIDs.end())
 			{
-				app::cSound_Base::PlayingBgmStetaEnum bgmState = (app::cSound_Base::PlayingBgmStetaEnum)playingBgmInfo.get<std::uint8_t>("State");
-				std::uint16_t bgmId = playingBgmInfo.get<std::uint16_t>("OriginalId");
-
-				// This basically replicates app.cSound_Base.updateBgmPlayType() in part
-				switch (bgmState)
+				bool isHigherPriorityOverrideActive = false;
+				bool isLowerPriorityOverrideActive = false;
+				bool foundSelf = false;
+				for (MusicSystemMod::MusicSettingInfo &otherMusicSettingInfo : s_musicSettingInfoList)
 				{
-				case app::cSound_Base::PlayingBgmStetaEnum::Play:
-					ingameSound.call("baseChangeBgm", bgmId, 0, i, -1);
-					break;
-				case app::cSound_Base::PlayingBgmStetaEnum::Pause:
-					ingameSound.call("coreStopBgm", ingameSound["_BgmSetting"].get<std::uint32_t>("DefaultStopTriggerID"), i);
-					playingBgmInfo.set<std::uint8_t>("State", app::cSound_Base::PlayingBgmStetaEnum::PauseStop);
-					break;
+					if (&otherMusicSettingInfo == musicSettingInfo)
+					{
+						foundSelf = true;
+						continue;
+					}
+					if (otherMusicSettingInfo.MenuItem != nullptr &&
+						!otherMusicSettingInfo.MenuItem->isDefaultValue() &&
+						std::ranges::find(otherMusicSettingInfo.TriggerIDs, playTriggerID) != otherMusicSettingInfo.TriggerIDs.end())
+					{
+						if (foundSelf)
+						{
+							isLowerPriorityOverrideActive = true;
+						}
+						else
+						{
+							isHigherPriorityOverrideActive = true;
+							break;
+						}
+					}
+				}
+				if (isHigherPriorityOverrideActive)
+				{
+					// If there is a higher priority override active then we should do nothing
+					continue;
+				}
+
+				bool isOverrideActive = !menuItem->isDefaultValue();
+
+				if (restartBgm)
+				{
+					app::cSound_Base::PlayingBgmStetaEnum bgmState = (app::cSound_Base::PlayingBgmStetaEnum)playingBgmInfo.get<std::uint8_t>("State");
+					std::uint16_t bgmId = playingBgmInfo.get<std::uint16_t>("OriginalId");
+
+					// This basically replicates app.cSound_Base.updateBgmPlayType() in part
+					switch (bgmState)
+					{
+					case app::cSound_Base::PlayingBgmStetaEnum::Play:
+						ingameSound.call("baseChangeBgm", bgmId, 0, i, -1);
+						break;
+					case app::cSound_Base::PlayingBgmStetaEnum::Pause:
+						ingameSound.call("coreStopBgm", ingameSound["_BgmSetting"].get<std::uint32_t>("DefaultStopTriggerID"), i);
+						playingBgmInfo.set<std::uint8_t>("State", app::cSound_Base::PlayingBgmStetaEnum::PauseStop);
+						break;
+					}
+				}
+				else
+				{
+					bool isArranged = ingameSound.get<std::uint8_t>("_CurrentBgmPlayType") == getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Arrange");
+					if (playingBgmInfo.get<bool>("IsPlaying"))
+					{
+						std::optional<bool> overrideMix = getOverrideMixForTriggerID(s_playerPlayTriggerID[i]);
+						if (overrideMix.has_value())
+						{
+							isArranged = overrideMix.value();
+						}
+						else
+						{
+							isOverrideActive = false;
+						}
+					}
+					MusicSystemMod::setEnableBgmArrangeForced(isArranged);
+				}
+
+				if (!isLowerPriorityOverrideActive)
+				{
+					// If we are the only active override we should update the override flag
+					s_isPlayerOverridden[i] = isOverrideActive;
 				}
 			}
 		}

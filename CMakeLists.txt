@@ -37,6 +37,7 @@ add_library(REF_PLUGIN SHARED
 	"src/MusicSystemMod_Settings.cpp"
 	"src/MusicSystemMod_Strings.cpp"
 	"src/REFrameworkHelper.cpp"
+	"src/ReplaceMusicMenuItem.cpp"
 )
 
 add_definitions(

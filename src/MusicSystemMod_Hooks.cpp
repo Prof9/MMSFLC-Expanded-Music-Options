@@ -24,6 +24,8 @@ void MusicSystemMod::installHooks()
 			Object origId2TriggerId = Object(argv[3]);
 			std::uint32_t playerId = (std::uint32_t)(intptr_t)argv[4];
 
+			bool isEmptyPreferredMix = false;
+
 			auto selectNoChange = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
 				return {};
@@ -41,7 +43,7 @@ void MusicSystemMod::installHooks()
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
 
-				sound["_Manager"].set<bool>("EnableBgmArrange", false);
+				MusicSystemMod::setEnableBgmArrangeForced(false);
 
 				sound["_ResidentContainer"].call(
 					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
@@ -66,7 +68,7 @@ void MusicSystemMod::installHooks()
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
 
-				sound["_Manager"].set<bool>("EnableBgmArrange", true);
+				MusicSystemMod::setEnableBgmArrangeForced(true);
 
 				sound["_ResidentContainer"].call(
 					"trigger(System.UInt32, via.GameObject, via.GameObject, System.UInt32, System.Boolean, System.UInt32, via.simplewwise.CallbackType, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>, System.Action`1<soundlib.SoundManager.RequestInfo>)",
@@ -88,72 +90,24 @@ void MusicSystemMod::installHooks()
 			};
 			auto selectMix = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
+				bool isPreferredMix = (CustomPlaylistMenuItem::Option)musicSettingInfo.MenuItem->getValue() == CustomPlaylistMenuItem::Option::PreferredMix;
 				bool isArranged = sound.get<std::uint8_t>("_CurrentBgmPlayType") == getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Arrange");
 
-				switch ((CustomPlaylistMenuItem::Option)musicSettingInfo.MenuItem->getValue())
+				// This will internally loop through the music settings info list again...
+				std::optional<bool> mixOverride = MusicSystemMod::getOverrideMixForTriggerID(triggerId);
+
+				// We always need to set EnableBgmArrange appropriately here
+				if (mixOverride.has_value())
 				{
-				case CustomPlaylistMenuItem::Option::AlwaysOriginal:
-					isArranged = false;
-					break;
-				case CustomPlaylistMenuItem::Option::AlwaysArranged:
-					isArranged = true;
-					break;
-				case CustomPlaylistMenuItem::Option::PreferredMix:
-					Object playlist = CustomPlaylistMenuItem::getPreferredMixPlaylist();
-					Object musicPlayerBgmDefineList = getType("app.sound.SoundMilkyDefine")["MusicPlayerBgmDefineList"];
-					Object bgmSettingDataList = sound["_Manager"]["_BgmSettingDataList"];
-					Type musicPlayerBgmDefineType = getType("app.sound.SoundMilkyDefine.MusicPlayerBgmDefine");
-					reframework::API::Field *musicPlayerBgmDefineType_Series = musicPlayerBgmDefineType.m_type->find_field("Series");
-					reframework::API::Field *musicPlayerBgmDefineType_BgmSettingIndex = musicPlayerBgmDefineType.m_type->find_field("BgmSettingIndex");
-
-					/// Map repeat songs (e.g. Winner! in SF2) to their original trigger IDs
-					const static std::unordered_map<std::uint32_t, std::uint32_t> MAP_REPEAT_TRIGGER_IDS = {
-						{0x412B3875, 0xE994DBDE}, // SF2: Cheerful Indoors -> SF1
-						{0xC1004ADD, 0x6DFDA90A}, // SF2: Cheerful Company -> SF1
-						{0xB166E74D, 0x1895189D}, // SF2: Moving Scene -> SF1
-						{0xA7A6A9EC, 0xE007FD11}, // SF2: Winner! (SF1 Version) -> SF1
-						{0x24628ADA, 0xA5C48DF3}, // SF2: Winner! - Short (SF1 Version) -> SF1
-						{0x4360DD04, 0x0DB8091D}, // SF2: Loser -> SF1
-						{0x93D25171, 0xD19E7AF5}, // SF2: Game Over -> SF1
-						{0xC2ABB29D, 0x522A7C35}, // SF2: Loneliness -> SF1
-						{0x295EEC52, 0xE994DBDE}, // SF3: Cheerful Indoors -> SF1
-						{0xE1AD6054, 0x4C86D9BA}, // SF3: Anthem of the Solitary -> SF2
-						{0x5448F0F6, 0x6DFDA90A}, // SF3: Cheerful Company -> SF1
-						{0xA98540F8, 0xBB2D3340}, // SF3: My Friends -> SF2
-						{0x26957CE4, 0x1895189D}, // SF3: Moving Scene -> SF1
-						{0x5A095B0E, 0xD19E7AF5}, // SF3: Game Over -> SF1
-						{0x6ACC1BA0, 0x0DB8091D}, // SF3: Loser... -> SF1
-					};
-					uint32_t checkTriggerId = triggerId;
-					if (auto it = MAP_REPEAT_TRIGGER_IDS.find(triggerId);
-						it != MAP_REPEAT_TRIGGER_IDS.end())
-					{
-						checkTriggerId = it->second;
-					}
-
-					bool found = false;
-					std::int32_t playlistLen = playlist.get<std::int32_t>("Count");
-					for (std::int32_t i = 0; i < playlistLen; ++i)
-					{
-						Object favMusicInfo = playlist[i];
-						std::uint16_t musicId = favMusicInfo.get<std::uint16_t>("musicId");
-
-						std::uint64_t musicPlayerBgmDefineRaw = musicPlayerBgmDefineList.get<std::uint64_t>(musicId);
-						std::uint8_t series = *(std::uint8_t *)musicPlayerBgmDefineType_Series->get_data_raw(&musicPlayerBgmDefineRaw, true);
-						std::uint8_t bgmSettingIndex = *(std::uint8_t *)musicPlayerBgmDefineType_BgmSettingIndex->get_data_raw(&musicPlayerBgmDefineRaw, true);
-
-						std::uint32_t playerTriggerId = bgmSettingDataList[series]["BgmId2TriggerIdList"][bgmSettingIndex].get<std::uint32_t>("PlayTriggerId");
-
-						if (triggerId == playerTriggerId)
-						{
-							found = true;
-							isArranged = favMusicInfo.get<bool>("isArrange");
-						}
-					}
-					break;
+					isArranged = mixOverride.value();
 				}
+				MusicSystemMod::setEnableBgmArrangeForced(isArranged);
 
-				sound["_Manager"].set<bool>("EnableBgmArrange", isArranged);
+				if (isPreferredMix && !mixOverride.has_value())
+				{
+					// We don't want this player to be overwritten; it should follow the BGM Selection setting
+					isEmptyPreferredMix = true;
+				}
 
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
@@ -261,10 +215,7 @@ void MusicSystemMod::installHooks()
 					}
 				}
 
-				if (std::find(
-						musicSettingInfo.TriggerIDs.begin(),
-						musicSettingInfo.TriggerIDs.end(),
-						triggerId) != musicSettingInfo.TriggerIDs.end())
+				if (std::ranges::find(musicSettingInfo.TriggerIDs, triggerId) != musicSettingInfo.TriggerIDs.end())
 				{
 					switch (musicSettingInfo.Type)
 					{
@@ -288,7 +239,7 @@ void MusicSystemMod::installHooks()
 							break;
 						}
 						break;
-					case MusicSettingType::DlcMusicReplace:
+					case MusicSettingType::ReplaceMusic:
 						if (musicSettingInfo.MenuItem->getValue() != 0)
 						{
 							s_corePlayBgm_retVal = selectDlcMusic(musicSettingInfo);
@@ -303,8 +254,11 @@ void MusicSystemMod::installHooks()
 				}
 			}
 
+			// For empty Preferred Mix, we want to have the player not be overridden (it should follow Arrange flag)
+			// However we do want to block music restart, since we will play the original track over MMBN tracks
 			s_playerPlayTriggerID[playerId] = triggerId;
-			s_isPlayerOverridden[playerId] = s_corePlayBgm_retVal.has_value();
+			s_isPlayerOverridden[playerId] = isEmptyPreferredMix ? false : s_corePlayBgm_retVal.has_value();
+			s_suppressUpdatePlayType[playerId] = isEmptyPreferredMix ? true : s_corePlayBgm_retVal.has_value();
 			return s_corePlayBgm_retVal.has_value() ? REFRAMEWORK_HOOK_SKIP_ORIGINAL : REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
 		[](void **retval, auto...)
@@ -316,19 +270,24 @@ void MusicSystemMod::installHooks()
 			}
 		}));
 
-	static bool s_disableEnableBgmArrangeHook = false;
 	s_hooks.emplace_back(hook(
 		"app.sound.SoundMilkyManager.set_EnableBgmArrange(System.Boolean)",
 		[](int argc, void **argv, auto...)
 		{
 			Object manager = Object(argv[1]);
 			Object sound = manager["_IngameSoundSystem"];
-			if (sound != nullptr && !s_disableEnableBgmArrangeHook)
+			if (sound != nullptr)
 			{
-				bool isArranged = (std::uint8_t)(intptr_t)argv[2];
-
 				std::uint32_t playerId = sound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
-				s_isPlayerArranged[playerId] = isArranged;
+				if (s_disableEnableBgmArrangeHook)
+				{
+					bool isArranged = (std::uint8_t)(intptr_t)argv[2];
+					s_isPlayerArranged[playerId] = isArranged;
+				}
+				else if (s_isPlayerOverridden[playerId])
+				{
+					return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+				}
 			}
 
 			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
@@ -348,8 +307,7 @@ void MusicSystemMod::installHooks()
 			if (s_isPlayerOverridden[playerId])
 			{
 				// Set BGM arrange flag to what we know it to be
-				bool isArranged = s_isPlayerArranged[playerId];
-				sound["_Manager"].set<bool>("EnableBgmArrange", isArranged);
+				MusicSystemMod::setEnableBgmArrangeForced(s_isPlayerArranged[playerId]);
 			}
 			else
 			{
@@ -368,7 +326,7 @@ void MusicSystemMod::installHooks()
 				app::cSound_Base::PlayingBgmStetaEnum bgmState = (app::cSound_Base::PlayingBgmStetaEnum)playingBgmInfo.get<std::int8_t>("State");
 				updateBgmPlayType_playingBgmInfoStates[i] = bgmState;
 
-				if (s_isPlayerOverridden[i])
+				if (s_suppressUpdatePlayType[i])
 				{
 					playingBgmInfo.set<std::int8_t>("State", app::cSound_Base::PlayingBgmStetaEnum::None);
 				}

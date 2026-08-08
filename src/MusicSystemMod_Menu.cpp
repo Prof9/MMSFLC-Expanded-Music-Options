@@ -9,6 +9,7 @@
 #include "MenuItem.hpp"
 #include "MusicSystemMod.hpp"
 #include "REFrameworkHelper.hpp"
+#include "ReplaceMusicMenuItem.hpp"
 
 using namespace REFrameworkHelper;
 
@@ -16,9 +17,6 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_COMMON = {
 	{.m_nameGuid = L"c564c411-216f-498f-9c53-459408c675d5"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange),
 	 .m_descriptionGuid = L"efab3c28-9b48-442f-9fcb-7cf75b46b7bc"_guid},
-	{.m_nameGuid = L"33fffdce-f115-4cd5-ade2-2a168f47d19a"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
-	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
 	{.m_nameGuid = L"b46d7983-3acf-40a4-8c71-3f2bfb7d7b89"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysOriginal),
 	 .m_descriptionGuid = L"bf4b7003-90ae-45fa-bcda-66d72fa818e5"_guid},
@@ -34,14 +32,14 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_COMMON = {
 	{.m_nameGuid = L"c5451ab5-0f50-45c0-8368-de71c13aa44b"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Favorites),
 	 .m_descriptionGuid = L"99b3bbca-167c-416c-aa9d-1349dac7b784"_guid},
+	{.m_nameGuid = L"33fffdce-f115-4cd5-ade2-2a168f47d19a"_guid,
+	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
+	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
 };
 const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_NORMAL_BATTLE = {
 	{.m_nameGuid = L"c564c411-216f-498f-9c53-459408c675d5"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange),
 	 .m_descriptionGuid = L"efab3c28-9b48-442f-9fcb-7cf75b46b7bc"_guid},
-	{.m_nameGuid = L"33fffdce-f115-4cd5-ade2-2a168f47d19a"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
-	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
 	{.m_nameGuid = L"b46d7983-3acf-40a4-8c71-3f2bfb7d7b89"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysOriginal),
 	 .m_descriptionGuid = L"bf4b7003-90ae-45fa-bcda-66d72fa818e5"_guid},
@@ -66,14 +64,14 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_NORMAL_BATTLE = {
 	// {.m_nameGuid = L"91937c25-8452-45d8-a735-aa569695badb"_guid,
 	//  .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::FieldArranged),
 	//  .m_descriptionGuid = L"bdbd21a1-9136-4639-bf6a-bda1fdc18e64"_guid},
+	{.m_nameGuid = L"33fffdce-f115-4cd5-ade2-2a168f47d19a"_guid,
+	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
+	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
 };
 const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_WINNER_LOSER = {
 	{.m_nameGuid = L"c564c411-216f-498f-9c53-459408c675d5"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange),
 	 .m_descriptionGuid = L"efab3c28-9b48-442f-9fcb-7cf75b46b7bc"_guid},
-	{.m_nameGuid = L"33fffdce-f115-4cd5-ade2-2a168f47d19a"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
-	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
 	{.m_nameGuid = L"b46d7983-3acf-40a4-8c71-3f2bfb7d7b89"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::AlwaysOriginal),
 	 .m_descriptionGuid = L"bf4b7003-90ae-45fa-bcda-66d72fa818e5"_guid},
@@ -92,20 +90,23 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_WINNER_LOSER = {
 	// {.m_nameGuid = L"0a1089a5-f79f-45d4-9329-f159d2d4fdc2"_guid,
 	//  .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Battle),
 	//  .m_descriptionGuid = L"22089bb3-1ed9-498f-bb7b-b10063cdc380"_guid},
+	{.m_nameGuid = L"33fffdce-f115-4cd5-ade2-2a168f47d19a"_guid,
+	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
+	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
 };
 const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_MAIN_MENU = {
 	{.m_nameGuid = L"c564c411-216f-498f-9c53-459408c675d5"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange),
 	 .m_descriptionGuid = L"efab3c28-9b48-442f-9fcb-7cf75b46b7bc"_guid},
-	{.m_nameGuid = L"33fffdce-f115-4cd5-ade2-2a168f47d19a"_guid,
-	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
-	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
 	{.m_nameGuid = L"36fac9cf-514b-45f7-b015-b5b54b4817c3"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Playlist),
 	 .m_descriptionGuid = L"297584f6-5da9-4131-99fd-365f2d8746ac"_guid},
 	{.m_nameGuid = L"c5451ab5-0f50-45c0-8368-de71c13aa44b"_guid,
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::Favorites),
 	 .m_descriptionGuid = L"99b3bbca-167c-416c-aa9d-1349dac7b784"_guid},
+	{.m_nameGuid = L"33fffdce-f115-4cd5-ade2-2a168f47d19a"_guid,
+	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
+	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
 };
 const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_DLC_BGM = {
 	{.m_nameGuid = L"0f2bff24-8e0d-4e6d-851f-0ec36763e53e"_guid,
@@ -211,28 +212,28 @@ void MusicSystemMod::buildMenu()
 		&OPTIONS_MAIN_MENU,
 		&s_settings.MainMenuBgm,
 		defaultSettings.MainMenuBgm);
-	s_menuItemDlcBgmLoneliness = std::make_unique<MenuItem>(
+	s_menuItemDlcBgmLoneliness = std::make_unique<ReplaceMusicMenuItem>(
 		L"73c512c7-6d5d-405e-96d8-d9bcc7eff8d7"_guid,
 		L"238a92fc-c37b-4319-b2e1-f40cb6915c33"_guid,
 		&OPTIONS_DLC_BGM,
 		&s_settings.DlcBgmLoneliness,
 		defaultSettings.DlcBgmLoneliness,
 		app::DLCContentsManager::DLC_TYPE::DLC01);
-	s_menuItemDlcBgmAstroWave = std::make_unique<MenuItem>(
+	s_menuItemDlcBgmAstroWave = std::make_unique<ReplaceMusicMenuItem>(
 		L"28a49ef5-fc0c-48c5-a8eb-60c92ba20cc8"_guid,
 		L"5491219b-1b6e-4e37-a894-e065e37d7bb2"_guid,
 		&OPTIONS_DLC_BGM,
 		&s_settings.DlcBgmAstroWave,
 		defaultSettings.DlcBgmAstroWave,
 		app::DLCContentsManager::DLC_TYPE::DLC01);
-	s_menuItemDlcBgmAnthemOfTheSolitary = std::make_unique<MenuItem>(
+	s_menuItemDlcBgmAnthemOfTheSolitary = std::make_unique<ReplaceMusicMenuItem>(
 		L"cc097b76-9d12-40db-91ee-dff3e0852892"_guid,
 		L"8313007b-6258-4f73-82e3-07952e8d9831"_guid,
 		&OPTIONS_DLC_BGM,
 		&s_settings.DlcBgmAnthemOfTheSolitary,
 		defaultSettings.DlcBgmAnthemOfTheSolitary,
 		app::DLCContentsManager::DLC_TYPE::DLC01);
-	s_menuItemDlcBgmCheerfulIndoors = std::make_unique<MenuItem>(
+	s_menuItemDlcBgmCheerfulIndoors = std::make_unique<ReplaceMusicMenuItem>(
 		L"31d45ae4-128e-4172-820f-4fd2b06510a5"_guid,
 		L"61511466-dd94-4c00-ae88-4a8878002c8b"_guid,
 		&OPTIONS_DLC_BGM,
@@ -265,7 +266,7 @@ void MusicSystemMod::buildMenu()
 	s_musicSettingInfoList = {
 		// DLC replace settings have higher priority
 		{
-			.Type = MusicSettingType::DlcMusicReplace,
+			.Type = MusicSettingType::ReplaceMusic,
 			.TriggerIDs = {
 				0x522A7C35, // SF1: Loneliness
 				0xC2ABB29D, // SF2: Loneliness
@@ -276,7 +277,7 @@ void MusicSystemMod::buildMenu()
 			.RequiredDLC = app::DLCContentsManager::DLC_TYPE::DLC01,
 		},
 		{
-			.Type = MusicSettingType::DlcMusicReplace,
+			.Type = MusicSettingType::ReplaceMusic,
 			.TriggerIDs = {
 				0x052ABAC7, // SF3: Astro Wave
 			},
@@ -285,7 +286,7 @@ void MusicSystemMod::buildMenu()
 			.RequiredDLC = app::DLCContentsManager::DLC_TYPE::DLC01,
 		},
 		{
-			.Type = MusicSettingType::DlcMusicReplace,
+			.Type = MusicSettingType::ReplaceMusic,
 			.TriggerIDs = {
 				0x4C86D9BA, // SF2: Anthem of the Solitary
 				0xE1AD6054, // SF3: Anthem of the Solitary
@@ -295,7 +296,7 @@ void MusicSystemMod::buildMenu()
 			.RequiredDLC = app::DLCContentsManager::DLC_TYPE::DLC01,
 		},
 		{
-			.Type = MusicSettingType::DlcMusicReplace,
+			.Type = MusicSettingType::ReplaceMusic,
 			.TriggerIDs = {
 				0xE994DBDE, // SF1: Cheerful Indoors
 				0x412B3875, // SF2: Cheerful Indoors

@@ -209,18 +209,54 @@ void CustomPlaylistMenuItem::setValue(std::int32_t value) const
 	MenuItem::setValue(value);
 	CustomPlaylistMenuItem::Option newValue = (CustomPlaylistMenuItem::Option)getValue();
 
-	// Check if current player is overridden
-	constexpr std::array mixMusicOptions{
-		CustomPlaylistMenuItem::Option::AlwaysOriginal,
-		CustomPlaylistMenuItem::Option::AlwaysArranged,
-		CustomPlaylistMenuItem::Option::PreferredMix,
+	std::vector changeBgmMusicOptions{
+		CustomPlaylistMenuItem::Option::MusicOff,
+		CustomPlaylistMenuItem::Option::Battle,
+		CustomPlaylistMenuItem::Option::Field,
+		CustomPlaylistMenuItem::Option::FieldOriginal,
+		CustomPlaylistMenuItem::Option::FieldArranged,
 	};
-	// If we are changing to or from an option that can replace music...
-	if (!std::ranges::contains(mixMusicOptions, oldValue) ||
-		!std::ranges::contains(mixMusicOptions, newValue))
+	constexpr std::array changeBgmMusicOptionsField{
+		CustomPlaylistMenuItem::Option::Field,
+		CustomPlaylistMenuItem::Option::FieldOriginal,
+		CustomPlaylistMenuItem::Option::FieldArranged,
+	};
+
+	// Check if playlist or favorites is empty
+	// This doesn't check for DLC but oh well
+	/*
+	Object playlist = getCustomPlaylist();
+	Object favorites = getSingleton("app.Launcher")["_saveData"]["favoriteMusicList"];
+	if (playlist.get<std::int32_t>("Count") > 0)
 	{
-		MusicSystemMod::reloadBgmForMenuItem(this);
+		changeBgmMusicOptions.push_back(CustomPlaylistMenuItem::Option::Playlist);
 	}
+	if (favorites.get<std::int32_t>("Count") > 0)
+	{
+		changeBgmMusicOptions.push_back(CustomPlaylistMenuItem::Option::Favorites);
+	}
+	*/
+
+	// TODO for now just always add them
+	// Otherwise going empty playlist -> MMBN music -> change to mix option doesn't restart music
+	changeBgmMusicOptions.push_back(CustomPlaylistMenuItem::Option::Playlist);
+	changeBgmMusicOptions.push_back(CustomPlaylistMenuItem::Option::Favorites);
+
+	bool restartBgm = false;
+	if (std::ranges::contains(changeBgmMusicOptions, oldValue) ||
+		std::ranges::contains(changeBgmMusicOptions, newValue))
+	{
+		// We are changing to or from an option that can replace music
+		restartBgm = true;
+	}
+	if (std::ranges::contains(changeBgmMusicOptionsField, oldValue) &&
+		std::ranges::contains(changeBgmMusicOptionsField, newValue))
+	{
+		// BGM shouldn't restart in this case
+		restartBgm = false;
+	}
+
+	MusicSystemMod::reloadBgmForMenuItem(this, restartBgm);
 }
 
 bool CustomPlaylistMenuItem::canEnter()
