@@ -105,6 +105,7 @@ private:
 	static inline std::unordered_map<std::size_t, bool> s_isPlayerArranged;
 	static inline std::unordered_map<std::size_t, std::uint32_t> s_playerPlayTriggerID;
 	static inline std::unordered_map<std::size_t, bool> s_isPlayerOverridden;
+	static inline std::unordered_map<std::size_t, bool> s_forceUpdatePlayTypeArrange;
 	static inline std::unordered_map<std::size_t, bool> s_suppressUpdatePlayType;
 
 	static inline bool s_disableEnableBgmArrangeHook = false;

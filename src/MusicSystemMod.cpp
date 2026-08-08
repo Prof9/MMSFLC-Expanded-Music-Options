@@ -384,10 +384,16 @@ void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem, bool restart
 		{
 			Object playingBgmInfo = playingBgmInfoList[i];
 
+			bool restartBgmForPlayer = restartBgm;
+
 			// Check if this player is overridden by this music setting
 			std::uint32_t playTriggerID = s_playerPlayTriggerID[i];
 			if (std::ranges::find(musicSettingInfo->TriggerIDs, playTriggerID) != musicSettingInfo->TriggerIDs.end())
 			{
+				std::optional<bool> overrideMix = getOverrideMixForTriggerID(playTriggerID);
+
+				bool isOverrideActive = !menuItem->isDefaultValue();
+				bool isOverrideActiveChanged = false;
 				bool isHigherPriorityOverrideActive = false;
 				bool isLowerPriorityOverrideActive = false;
 				bool foundSelf = false;
@@ -418,10 +424,38 @@ void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem, bool restart
 					// If there is a higher priority override active then we should do nothing
 					continue;
 				}
+				if (!isLowerPriorityOverrideActive)
+				{
+					// Force a restart if we are playing non-default music and override becomes active
+					// or if override becomes inactive and we should be playing default music
+					if (isOverrideActive && !s_isPlayerOverridden[i] &&
+						!playingBgmInfo.get<bool>("IsPlayOriginalContainer"))
+					{
+						restartBgmForPlayer = true;
+					}
+					if (!isOverrideActive && s_isPlayerOverridden[i] &&
+						ingameSound.get<std::uint8_t>("_CurrentBgmPlayType") != getStaticField<std::uint8_t>("app.cSound_Base.BgmPlayType_Original") &&
+						ingameSound.get<std::uint8_t>("_CurrentBgmPlayType") != getStaticField<std::uint8_t>("app.cSound_Base.BgmPlayType_Arrange"))
+					{
+						restartBgmForPlayer = true;
+					}
 
-				bool isOverrideActive = !menuItem->isDefaultValue();
+					// If we are the only active override we should update the override flag
 
-				if (restartBgm)
+					if (musicSettingInfo->Type == MusicSettingType::CustomPlaylist &&
+						(CustomPlaylistMenuItem::Option)menuItem->getValue() == CustomPlaylistMenuItem::Option::PreferredMix &&
+						!overrideMix.has_value())
+					{
+						s_isPlayerOverridden[i] = false;
+					}
+					else
+					{
+						s_isPlayerOverridden[i] = isOverrideActive;
+					}
+					s_suppressUpdatePlayType[i] = isOverrideActive;
+				}
+
+				if (restartBgmForPlayer)
 				{
 					app::cSound_Base::PlayingBgmStetaEnum bgmState = (app::cSound_Base::PlayingBgmStetaEnum)playingBgmInfo.get<std::uint8_t>("State");
 					std::uint16_t bgmId = playingBgmInfo.get<std::uint16_t>("OriginalId");
@@ -433,7 +467,9 @@ void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem, bool restart
 						ingameSound.call("baseChangeBgm", bgmId, 0, i, -1);
 						break;
 					case app::cSound_Base::PlayingBgmStetaEnum::Pause:
-						ingameSound.call("coreStopBgm", ingameSound["_BgmSetting"].get<std::uint32_t>("DefaultStopTriggerID"), i);
+						// TODO: We could do this not immediately but only upon unpause if the effective music will change
+						// That way if you change music type and back while in battle (SF2) it won't restart field music
+						ingameSound.call("coreStopBgm", ingameSound["_BgmSetting"].get<std::uint32_t>("DefaultStopTriggerId"), i);
 						playingBgmInfo.set<std::uint8_t>("State", app::cSound_Base::PlayingBgmStetaEnum::PauseStop);
 						break;
 					}
@@ -441,25 +477,21 @@ void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem, bool restart
 				else
 				{
 					bool isArranged = ingameSound.get<std::uint8_t>("_CurrentBgmPlayType") == getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Arrange");
+					if (overrideMix.has_value())
+					{
+						isArranged = overrideMix.value();
+					}
+					else
+					{
+						isOverrideActive = false;
+					}
+
+					s_isPlayerArranged[i] = isArranged;
+					s_forceUpdatePlayTypeArrange[i] = true;
 					if (playingBgmInfo.get<bool>("IsPlaying"))
 					{
-						std::optional<bool> overrideMix = getOverrideMixForTriggerID(s_playerPlayTriggerID[i]);
-						if (overrideMix.has_value())
-						{
-							isArranged = overrideMix.value();
-						}
-						else
-						{
-							isOverrideActive = false;
-						}
+						MusicSystemMod::setEnableBgmArrangeForced(isArranged);
 					}
-					MusicSystemMod::setEnableBgmArrangeForced(isArranged);
-				}
-
-				if (!isLowerPriorityOverrideActive)
-				{
-					// If we are the only active override we should update the override flag
-					s_isPlayerOverridden[i] = isOverrideActive;
 				}
 			}
 		}

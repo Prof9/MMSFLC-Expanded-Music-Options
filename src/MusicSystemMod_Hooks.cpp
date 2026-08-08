@@ -25,6 +25,7 @@ void MusicSystemMod::installHooks()
 			std::uint32_t playerId = (std::uint32_t)(intptr_t)argv[4];
 
 			bool isEmptyPreferredMix = false;
+			bool isArranged = sound.get<std::uint8_t>("_CurrentBgmPlayType") == getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Arrange");
 
 			auto selectNoChange = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
@@ -91,7 +92,6 @@ void MusicSystemMod::installHooks()
 			auto selectMix = [&](MusicSettingInfo &musicSettingInfo) -> std::optional<std::uint8_t>
 			{
 				bool isPreferredMix = (CustomPlaylistMenuItem::Option)musicSettingInfo.MenuItem->getValue() == CustomPlaylistMenuItem::Option::PreferredMix;
-				bool isArranged = sound.get<std::uint8_t>("_CurrentBgmPlayType") == getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Arrange");
 
 				// This will internally loop through the music settings info list again...
 				std::optional<bool> mixOverride = MusicSystemMod::getOverrideMixForTriggerID(triggerId);
@@ -101,7 +101,6 @@ void MusicSystemMod::installHooks()
 				{
 					isArranged = mixOverride.value();
 				}
-				MusicSystemMod::setEnableBgmArrangeForced(isArranged);
 
 				if (isPreferredMix && !mixOverride.has_value())
 				{
@@ -155,11 +154,11 @@ void MusicSystemMod::installHooks()
 				std::int32_t r = getType("via.MathEx").call<std::int32_t>("randomRangeIndex", 0, playlistSize);
 				Object musicInfo = playlist[r];
 				std::uint16_t musicId = musicInfo.get<std::uint16_t>("musicId");
-				bool isArrange = musicInfo.get<bool>("isArrange");
+				isArranged = musicInfo.get<bool>("isArrange");
 
 				Object playingBgmInfo = sound["_PlayingBgmInfoList"][playerId];
 				Object playerObject = playingBgmInfo["PlayerObject"];
-				if (!MusicSystemMod::playBgm(playerObject, musicId, isArrange))
+				if (!MusicSystemMod::playBgm(playerObject, musicId, isArranged))
 				{
 					return {};
 				}
@@ -203,7 +202,6 @@ void MusicSystemMod::installHooks()
 				return getType("app.cSound_Base").get<std::uint8_t>("BgmPlayType_Original");
 			};
 
-			bool replaced = false;
 			Object dlcContentsManager = getSingleton("app.DLCContentsManager");
 			for (MusicSettingInfo &musicSettingInfo : s_musicSettingInfoList)
 			{
@@ -256,9 +254,10 @@ void MusicSystemMod::installHooks()
 
 			// For empty Preferred Mix, we want to have the player not be overridden (it should follow Arrange flag)
 			// However we do want to block music restart, since we will play the original track over MMBN tracks
+			MusicSystemMod::setEnableBgmArrangeForced(isArranged);
 			s_playerPlayTriggerID[playerId] = triggerId;
 			s_isPlayerOverridden[playerId] = isEmptyPreferredMix ? false : s_corePlayBgm_retVal.has_value();
-			s_suppressUpdatePlayType[playerId] = isEmptyPreferredMix ? true : s_corePlayBgm_retVal.has_value();
+			s_suppressUpdatePlayType[playerId] = s_corePlayBgm_retVal.has_value();
 			return s_corePlayBgm_retVal.has_value() ? REFRAMEWORK_HOOK_SKIP_ORIGINAL : REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
 		[](void **retval, auto...)
@@ -278,6 +277,12 @@ void MusicSystemMod::installHooks()
 			Object sound = manager["_IngameSoundSystem"];
 			if (sound != nullptr)
 			{
+				// Call normally if we are in music player
+				if (!getSingleton("app.Launcher").call<bool>("isMusicPlayerEnd"))
+				{
+					return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+				}
+
 				std::uint32_t playerId = sound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
 				if (s_disableEnableBgmArrangeHook)
 				{
@@ -294,6 +299,20 @@ void MusicSystemMod::installHooks()
 		},
 		nullptr));
 
+	s_hooks.emplace_back(hook(
+		"app.cSound_Base.doUpdate",
+		[](auto...)
+		{
+			// Skip ingame sound update if we are in music player
+			if (!getSingleton("app.Launcher").call<bool>("isMusicPlayerEnd"))
+			{
+				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		nullptr));
+
 	static std::vector<app::cSound_Base::PlayingBgmStetaEnum> updateBgmPlayType_playingBgmInfoStates;
 	static Object updateBgmPlayType_sound;
 	s_hooks.emplace_back(hook(
@@ -304,10 +323,11 @@ void MusicSystemMod::installHooks()
 			updateBgmPlayType_sound = sound;
 
 			std::uint32_t playerId = sound.get<std::uint32_t>("_CurrentPlayBgmPlayerId");
-			if (s_isPlayerOverridden[playerId])
+			if (s_isPlayerOverridden[playerId] || s_forceUpdatePlayTypeArrange[playerId])
 			{
 				// Set BGM arrange flag to what we know it to be
 				MusicSystemMod::setEnableBgmArrangeForced(s_isPlayerArranged[playerId]);
+				s_forceUpdatePlayTypeArrange[playerId] = false;
 			}
 			else
 			{

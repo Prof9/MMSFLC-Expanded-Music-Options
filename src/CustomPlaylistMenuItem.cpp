@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <utility>
 
 #include "CustomPlaylistMenuItem.hpp"
@@ -238,7 +239,7 @@ void CustomPlaylistMenuItem::setValue(std::int32_t value) const
 	*/
 
 	// TODO for now just always add them
-	// Otherwise going empty playlist -> MMBN music -> change to mix option doesn't restart music
+	// Otherwise going empty playlist -> exit to start MMBN music -> change to mix option doesn't restart music
 	changeBgmMusicOptions.push_back(CustomPlaylistMenuItem::Option::Playlist);
 	changeBgmMusicOptions.push_back(CustomPlaylistMenuItem::Option::Favorites);
 
@@ -361,14 +362,37 @@ bool CustomPlaylistMenuItem::onUpdate()
 					}
 				}
 
-				// Delete any pending delayed play requests
+				// Process and delete any pending delayed play requests
 				Object delayPlayBgmInfoList = sound["_DelayPlayBgmList"];
 				std::int32_t delayPlayBgmInfoListLength = delayPlayBgmInfoList.get<std::int32_t>("Length");
+				std::uint16_t dummyBgmId = getStaticField<std::uint16_t>("app.cSound_Base.DummyBgmId");
+				std::vector<float> pendingPlayBgmTimer(playingBgmInfoListLength, -std::numeric_limits<float>::infinity());
 				for (std::int32_t i = 0; i < delayPlayBgmInfoListLength; ++i)
 				{
 					Object delayPlayBgmInfo = delayPlayBgmInfoList[i];
 					if (delayPlayBgmInfo != nullptr)
 					{
+						std::uint32_t playerID = delayPlayBgmInfo.get<std::uint32_t>("BgmPlayerId");
+						float timer = delayPlayBgmInfo.get<float>("Timer");
+
+						// Use the delay request that will fire last
+						if (playerID <= playingBgmInfoListLength &&
+							timer > pendingPlayBgmTimer[playerID])
+						{
+							switch ((app::cSound_Base::DelayPlayBgmTypeEnum)delayPlayBgmInfo.get<std::uint8_t>("DelayPlayBgmType"))
+							{
+							case app::cSound_Base::DelayPlayBgmTypeEnum::ContinuousPlay:
+							case app::cSound_Base::DelayPlayBgmTypeEnum::Resume:
+								m_pendingDelayBgmRequests[playerID] = delayPlayBgmInfo.get<std::uint32_t>("OriginalId");
+								break;
+							case app::cSound_Base::DelayPlayBgmTypeEnum::StopTrigger:
+								m_pendingDelayBgmRequests[playerID] = dummyBgmId;
+								break;
+							default:
+								break;
+							}
+						}
+
 						delayPlayBgmInfoList[i].call("reset");
 					}
 				}
@@ -465,16 +489,33 @@ bool CustomPlaylistMenuItem::onUpdate()
 			{
 				Object playingBgmInfoList = sound["_PlayingBgmInfoList"];
 				std::int32_t playingBgmInfoListLength = playingBgmInfoList.get<std::int32_t>("Length");
+
+				std::uint16_t dummyBgmId = getStaticField<std::uint16_t>("app.cSound_Base.DummyBgmId");
+
 				for (std::int32_t i = 0; i < playingBgmInfoListLength; ++i)
 				{
 					Object playingBgmInfo = playingBgmInfoList[i];
-					if (playingBgmInfo != nullptr && playingBgmInfo.get<bool>("IsPlaying"))
+
+					// Pending play request takes priority
+					std::uint16_t bgmId = dummyBgmId;
+					if (m_pendingDelayBgmRequests.contains(i))
 					{
-						sound.call("basePlayBgm", playingBgmInfo.get<std::uint16_t>("OriginalId"), 0, i);
+						bgmId = m_pendingDelayBgmRequests[i];
+					}
+					else if (playingBgmInfo != nullptr &&
+							 (playingBgmInfo.get<bool>("IsPlaying")))
+					{
+						bgmId = playingBgmInfo.get<std::uint16_t>("OriginalId");
+					}
+
+					if (bgmId != dummyBgmId)
+					{
+						sound.call("basePlayBgm", bgmId, 0, i);
 					}
 				}
 			}
 
+			m_pendingDelayBgmRequests.clear();
 			s_activeInstance = nullptr;
 			m_state = State::Idle;
 		}

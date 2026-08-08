@@ -62,6 +62,7 @@ private:
 	State m_state = State::Idle;
 	bool m_ingameMusicPlayer = false;
 	std::size_t m_numNewAlbumFlags;
+	std::unordered_map<std::size_t, std::uint16_t> m_pendingDelayBgmRequests;
 
 	std::filesystem::path m_customPlaylistFileName;
 	REFrameworkHelper::Object m_customPlaylist;
