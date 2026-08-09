@@ -31,6 +31,21 @@ void MusicSystemMod::init()
 	loadSettings();
 }
 
+void MusicSystemMod::runInBackground()
+{
+	// Periodically keep checking for DLC to be loaded
+	while (true)
+	{
+		if (hasMainMenuBgm())
+		{
+			s_menuItemMainMenuBgm->m_options = &OPTIONS_MAIN_MENU;
+			break;
+		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+}
+
 /// @brief Install music system mod after game has launched
 void MusicSystemMod::install()
 {
@@ -47,6 +62,9 @@ void MusicSystemMod::install()
 	buildMenu();
 
 	installHooks();
+
+	std::thread backgroundWorker(runInBackground);
+	backgroundWorker.detach();
 }
 
 /// @brief Uninstall music system mod

@@ -224,7 +224,7 @@ void MusicSystemMod::buildMenu()
 		CONFIG_FILE("playlist_main_menu.bin"),
 		L"3cc5ab6c-4a2a-4cb0-8816-845aefbf01ab"_guid,
 		L"bc71a2d1-54df-41b0-a2ee-670a4eb6e0a9"_guid,
-		hasMainMenuBgm() ? &OPTIONS_MAIN_MENU : &OPTIONS_MAIN_MENU_RESTRICTED,
+		&OPTIONS_MAIN_MENU_RESTRICTED,
 		&s_settings.MainMenuBgm,
 		defaultSettings.MainMenuBgm);
 	s_menuItemDlcBgmLoneliness = std::make_unique<ReplaceMusicMenuItem>(

@@ -71,6 +71,7 @@ public:
 
 	static void install();
 	static void uninstall();
+	static void runInBackground();
 
 	static std::optional<BgmTriggerInfo> getBgmTriggerInfo(std::uint16_t bgmId);
 	static bool playBgm(REFrameworkHelper::Object srcObj, std::uint16_t bgmId, bool isArranged, REFrameworkHelper::Object container, std::uint32_t triggerId);
