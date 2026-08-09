@@ -529,9 +529,10 @@ bool CustomPlaylistMenuItem::onUpdate()
 /// @brief Install all hooks used for custom playlist editor
 void CustomPlaylistMenuItem::installHooksMusicPlayer()
 {
+	static Object launcherMusicPlayer;
+
 	// Hook method which is called during music player start
 	// immediately after setting favorites list and new album flags
-	static Object launcherMusicPlayer;
 	s_hooksMusicPlayer.emplace_back(hook(
 		"app.GUILauncherMusicPlayer.setAlbumTrackNum",
 		[](int argc, void **argv, auto...)
@@ -558,6 +559,28 @@ void CustomPlaylistMenuItem::installHooksMusicPlayer()
 				break;
 			default:
 				assert(0);
+			}
+		}));
+
+	// Hook method which is called to start launcher
+	s_hooksMusicPlayer.emplace_back(hook(
+		"app.GUILauncherMusicPlayer.start",
+		[](int argc, void **argv, auto...)
+		{
+			launcherMusicPlayer = Object(argv[1]);
+
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+		},
+		[](auto...)
+		{
+			// For Preferred Mix, only show the SF1-3 albums
+			if ((CustomPlaylistMenuItem::Option)s_activeInstance->getValue() == CustomPlaylistMenuItem::Option::PreferredMix)
+			{
+				launcherMusicPlayer["_AlbumTbl"].set<std::int32_t>(0, getStaticField<std::int32_t>("app.GUILauncherMusicPlayer.Album.RR1"));
+				launcherMusicPlayer["_AlbumTbl"].set<std::int32_t>(1, getStaticField<std::int32_t>("app.GUILauncherMusicPlayer.Album.RR2"));
+				launcherMusicPlayer["_AlbumTbl"].set<std::int32_t>(2, getStaticField<std::int32_t>("app.GUILauncherMusicPlayer.Album.RR3"));
+				launcherMusicPlayer["_AlbumList"].set<std::uint32_t>("ItemMax", 3);
+				launcherMusicPlayer["_AlbumList"].set<std::uint32_t>("CursorIndex", 1);
 			}
 		}));
 
