@@ -368,15 +368,16 @@ void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem, bool restart
 {
 	// Find music setting info belonging to this menu item
 	const MusicSystemMod::MusicSettingInfo *musicSettingInfo = MusicSystemMod::getMusicSettingInfoForMenuItem(menuItem);
-	if (musicSettingInfo == nullptr)
-	{
-		return;
-	}
 
-	Object soundMilkyManager = getType("app.sound.SoundMilkyManager")["_Instance"];
-	Object ingameSound = soundMilkyManager["_IngameSoundSystem"];
+	Object ingameSound = getType("app.sound.SoundMilkyManager")["_Instance"]["_IngameSoundSystem"];
+	Object launcherSound = getType("app.sound.SoundLauncherBgmManager")["_Instance"];
 	if (ingameSound != nullptr)
 	{
+		if (musicSettingInfo == nullptr)
+		{
+			return;
+		}
+
 		// Go through all loaded BGMs
 		Object playingBgmInfoList = ingameSound["_PlayingBgmInfoList"];
 		std::int32_t playingBgmInfoListLength = playingBgmInfoList.get<std::int32_t>("Length");
@@ -493,6 +494,23 @@ void MusicSystemMod::reloadBgmForMenuItem(const MenuItem *menuItem, bool restart
 						MusicSystemMod::setEnableBgmArrangeForced(isArranged);
 					}
 				}
+			}
+		}
+	}
+	else if (launcherSound != nullptr)
+	{
+		// Check if this is the Main Menu BGM setting
+		// Good enough for now since MusicSystemMod owns this menu item
+		// Assume for now we can only access Options when the normal launcher BGM is playing
+		if (menuItem == s_menuItemMainMenuBgm.get())
+		{
+			if (restartBgm)
+			{
+				// Temporarily unset CurrentMainBgmId to force the play request to go through
+				std::uint16_t currentMainBgmId = launcherSound.get<std::uint16_t>("_CurrentMainBgmId");
+				launcherSound.set<std::uint16_t>("_CurrentMainBgmId", getStaticField<std::uint16_t>("app.sound.SoundLauncherBgmManager.InvalidBgmId"));
+				getSingleton("app.Launcher").call("playLauncherMainBgm");
+				launcherSound.set<std::uint16_t>("_CurrentMainBgmId", currentMainBgmId);
 			}
 		}
 	}
