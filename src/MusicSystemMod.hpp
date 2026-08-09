@@ -78,6 +78,8 @@ public:
 
 	static void reloadBgmForMenuItem(const MenuItem *menuItem, bool restartBgm);
 
+	static bool hasMainMenuBgm();
+
 private:
 	static void installHooks();
 	static void uninstallHooks();
@@ -97,6 +99,7 @@ private:
 	static const std::vector<MenuItem::Option> OPTIONS_NORMAL_BATTLE;
 	static const std::vector<MenuItem::Option> OPTIONS_WINNER_LOSER;
 	static const std::vector<MenuItem::Option> OPTIONS_MAIN_MENU;
+	static const std::vector<MenuItem::Option> OPTIONS_MAIN_MENU_RESTRICTED;
 	static const std::vector<MenuItem::Option> OPTIONS_DLC_BGM;
 
 	// Static state

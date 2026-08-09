@@ -51,6 +51,29 @@ void MusicSystemMod::uninstall()
 	uninstallHooks();
 }
 
+bool MusicSystemMod::hasMainMenuBgm()
+{
+	// Check if any DLC character is installed
+	Object dlcContentsManager = getSingleton("app.DLCContentsManager");
+	Object companionSetInfoTable = getSingleton("app.Launcher")["companionSetInfoTable"];
+	std::int32_t companionSetInfoTableLength = companionSetInfoTable.get<std::int32_t>("Length");
+	for (std::int32_t i = 0; i < companionSetInfoTableLength; i++)
+	{
+		Object companionSetInfo = companionSetInfoTable[i];
+		app::DLCContentsManager::DLC_TYPE dlcType = (app::DLCContentsManager::DLC_TYPE)companionSetInfo.get<std::int32_t>("dlcType");
+
+		if (dlcType == app::DLCContentsManager::DLC_TYPE::INVALID)
+		{
+			continue;
+		}
+		if (dlcContentsManager.call<bool>("getHasDLC", dlcType))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 /// @brief Get BGM container and trigger info for given BGM
 /// @param bgmId BGM ID
 /// @return BGM container and trigger info, if BGM is valid

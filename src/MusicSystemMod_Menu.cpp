@@ -108,6 +108,14 @@ const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_MAIN_MENU = {
 	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
 	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
 };
+const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_MAIN_MENU_RESTRICTED = {
+	{.m_nameGuid = L"c564c411-216f-498f-9c53-459408c675d5"_guid,
+	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange),
+	 .m_descriptionGuid = L"efab3c28-9b48-442f-9fcb-7cf75b46b7bc"_guid},
+	{.m_nameGuid = L"33fffdce-f115-4cd5-ade2-2a168f47d19a"_guid,
+	 .m_value = std::to_underlying(CustomPlaylistMenuItem::Option::MusicOff),
+	 .m_descriptionGuid = L"7f561d13-08c8-43c5-af02-4248afa489e4"_guid},
+};
 const std::vector<MenuItem::Option> MusicSystemMod::OPTIONS_DLC_BGM = {
 	{.m_nameGuid = L"0f2bff24-8e0d-4e6d-851f-0ec36763e53e"_guid,
 	 .m_value = false},
@@ -216,7 +224,7 @@ void MusicSystemMod::buildMenu()
 		CONFIG_FILE("playlist_main_menu.bin"),
 		L"3cc5ab6c-4a2a-4cb0-8816-845aefbf01ab"_guid,
 		L"bc71a2d1-54df-41b0-a2ee-670a4eb6e0a9"_guid,
-		&OPTIONS_MAIN_MENU,
+		hasMainMenuBgm() ? &OPTIONS_MAIN_MENU : &OPTIONS_MAIN_MENU_RESTRICTED,
 		&s_settings.MainMenuBgm,
 		defaultSettings.MainMenuBgm);
 	s_menuItemDlcBgmLoneliness = std::make_unique<ReplaceMusicMenuItem>(

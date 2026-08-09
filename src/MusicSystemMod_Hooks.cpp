@@ -420,6 +420,11 @@ void MusicSystemMod::installHooks()
 			};
 			auto selectPlaylist = [&](CustomPlaylistMenuItem::Option optionValue)
 			{
+				if (!MusicSystemMod::hasMainMenuBgm())
+				{
+					return false;
+				}
+
 				Object playlist;
 				bool isCustomPlaylist = optionValue == CustomPlaylistMenuItem::Option::Playlist;
 				if (isCustomPlaylist)
