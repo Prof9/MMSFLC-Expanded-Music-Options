@@ -6,7 +6,7 @@
 #include "Guid.hpp"
 #include "MusicSystemMod.hpp"
 
-const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::STRINGS =
+const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::STRINGS_ADDED =
 	{
 		{L"8debd0e1-ad1f-4afc-80a7-d1013ad86e89"_guid,
 		 {
@@ -202,7 +202,10 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"c5451ab5-0f50-45c0-8368-de71c13aa44b"_guid,
 		 {
+			 {via::Language::Japanese, u"フェイバリット <ICON LAUNCHER_DECIDE>"},
 			 {via::Language::English, u"Favorites <ICON LAUNCHER_DECIDE>"},
+			 {via::Language::TransitionalChinese, u"我的最愛 <ICON LAUNCHER_DECIDE>"},
+			 {via::Language::SimplelifiedChinese, u"收藏 <ICON LAUNCHER_DECIDE>"},
 		 }},
 		{L"99b3bbca-167c-416c-aa9d-1349dac7b784"_guid,
 		 {
@@ -243,5 +246,20 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		{L"079c9622-16d9-4871-b199-c25eb73196c8"_guid,
 		 {
 			 {via::Language::English, u"<ICON LAUNCHER_DECIDE> Edit List"},
+		 }},
+};
+
+const std::map<std::string_view, std::map<via::Language, char16_t const *>> MusicSystemMod::STRINGS_REPLACED =
+	{
+		{"Common_MsgGUI00030000_Sound_16",
+		 {
+			 {via::Language::Japanese, u"フェイバリット <ICON LAUNCHER_DECIDE>"},
+			 {via::Language::English, u"Favorites <ICON LAUNCHER_DECIDE>"},
+			 {via::Language::TransitionalChinese, u"我的最愛 <ICON LAUNCHER_DECIDE>"},
+			 {via::Language::SimplelifiedChinese, u"收藏 <ICON LAUNCHER_DECIDE>"},
+		 }},
+		{"Common_MsgGUI00030000_Sound_Guid_5",
+		 {
+			 {via::Language::English, u"Set the default setting for what tracks will play in-game.\n(Individual track types can be adjusted below.)"},
 		 }},
 };

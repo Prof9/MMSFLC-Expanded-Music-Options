@@ -186,7 +186,7 @@ void CustomPlaylistMenuItem::setPreferredMixPlaylistFileName(const std::filesyst
 	s_PreferredMixPlaylistFileName = fileName;
 }
 
-CustomPlaylistMenuItem::CustomPlaylistMenuItem(const std::filesystem::path &playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<MenuItem::Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue)
+CustomPlaylistMenuItem::CustomPlaylistMenuItem(std::optional<const std::filesystem::path> playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<MenuItem::Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue)
 	: MenuItem::MenuItem(nameGuid, descriptionGuid, options, valuePtr, defaultValue), m_customPlaylistFileName(playlistFileName)
 {
 	// Load original/arranged playlist if this is the first instance
@@ -196,7 +196,10 @@ CustomPlaylistMenuItem::CustomPlaylistMenuItem(const std::filesystem::path &play
 	}
 
 	// Load custom playlist
-	setCustomPlaylist(loadFavoritesList(m_customPlaylistFileName));
+	if (playlistFileName.has_value())
+	{
+		setCustomPlaylist(loadFavoritesList(m_customPlaylistFileName.value()));
+	}
 }
 
 CustomPlaylistMenuItem::~CustomPlaylistMenuItem()
@@ -452,8 +455,20 @@ bool CustomPlaylistMenuItem::onUpdate()
 			launcher.call("hideLoadingGUIIfShowed", false);
 
 			// save playlists
-			saveFavoritesList(s_activeInstance->m_customPlaylistFileName, m_customPlaylist);
-			saveFavoritesList(s_PreferredMixPlaylistFileName, s_PreferredMixPlaylist);
+			switch ((CustomPlaylistMenuItem::Option)getValue())
+			{
+			case CustomPlaylistMenuItem::Option::PreferredMix:
+				saveFavoritesList(s_activeInstance->s_PreferredMixPlaylistFileName, s_PreferredMixPlaylist);
+				break;
+			case CustomPlaylistMenuItem::Option::Playlist:
+				if (s_activeInstance->m_customPlaylistFileName.has_value())
+				{
+					saveFavoritesList(s_activeInstance->m_customPlaylistFileName.value(), m_customPlaylist);
+				}
+				break;
+			default:
+				break;
+			}
 
 			// destroy SoundLauncherBgmManager if we created it
 			if (m_ingameMusicPlayer)

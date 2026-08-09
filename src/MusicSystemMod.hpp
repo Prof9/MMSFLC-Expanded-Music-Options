@@ -94,7 +94,8 @@ private:
 	static void setEnableBgmArrangeForced(bool isArranged);
 
 	// Constants
-	static const std::map<Guid, std::map<via::Language, char16_t const *>> STRINGS;
+	static const std::map<Guid, std::map<via::Language, char16_t const *>> STRINGS_ADDED;
+	static const std::map<std::string_view, std::map<via::Language, char16_t const *>> STRINGS_REPLACED;
 	static const std::vector<MenuItem::Option> OPTIONS_COMMON;
 	static const std::vector<MenuItem::Option> OPTIONS_NORMAL_BATTLE;
 	static const std::vector<MenuItem::Option> OPTIONS_WINNER_LOSER;

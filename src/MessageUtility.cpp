@@ -12,7 +12,7 @@
 /// @brief Get GUID of loaded message by name.
 /// @param name Name of message in message file.
 /// @return GUID, if found, otherwise `nullptr`.
-Guid *MessageUtility::getMessageGuidByName(std::string name)
+Guid *MessageUtility::getMessageGuidByName(std::string_view name)
 {
 	// Get MsgID once
 	static reframework::API::TypeDefinition *msgID = nullptr;

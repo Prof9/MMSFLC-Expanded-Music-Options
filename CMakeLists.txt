@@ -16,6 +16,10 @@ cmake_path(SET GAME_INSTALL_DIR "${STEAM_LIBRARY_DIR}/steamapps/common/${GAME_IN
 set(CACHE{STEAM_LIBRARY_DIR} VALUE "${STEAM_LIBRARY_DIR}")
 set(CACHE{GAME_INSTALL_DIR} VALUE "${GAME_INSTALL_DIR}")
 
+if(MSVC)
+	add_compile_options(/utf-8)
+endif()
+
 include_directories(SYSTEM
 	"generated"
 	"src"

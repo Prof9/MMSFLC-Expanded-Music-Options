@@ -14,6 +14,10 @@
 
 using namespace REFrameworkHelper;
 
+static const Guid GUID_ICON_LAUNCHER_PAGE_PREV = L"cbfc4e85-c78c-4632-bd34-0e4a10e41f6b"_guid;
+static const Guid GUID_ICON_LAUNCHER_PAGE_NEXT = L"14dd8e95-a0c1-462a-acbc-5c2e34498a34"_guid;
+static const Guid GUID_EDIT_LIST = L"079c9622-16d9-4871-b199-c25eb73196c8"_guid;
+static const Guid GUID_BGM_SELECTION = L"c6fbbc43-3825-4d14-b409-6ed67714a297"_guid;
 static const ptrdiff_t FLUENT_SCROLL_LIST_OFFSET_BAR_PATH = 0x2D0;
 
 /// @brief Updates list display
@@ -105,6 +109,64 @@ void AudioMenuExtension::updateGuidMessage(Object launcherOptionSound)
 	Guid guid = guidList.get<Guid>(selectedIndex);
 
 	launcherOptionSound.call("setGuidMessage", &guid);
+}
+
+/// @brief Check if Favorites option of BGM Selection is selected.
+/// @return True if selected, false if not selected.
+bool AudioMenuExtension::isBgmSelectionFavoritesSelected()
+{
+	Object launcher = getSingleton("app.Launcher");
+	Object option = launcher.call<Object>("get__OptionComponent");
+	if (option == nullptr)
+	{
+		return false;
+	}
+
+	// If Audio settings is open
+	if ((app::GUILauncherOption::MENU_TYPE)option.get<std::int32_t>("_CurrentMenuType") != app::GUILauncherOption::MENU_TYPE::SOUND)
+	{
+		return false;
+	}
+	// If we are inside Audio settings
+	if ((app::GUILauncherOption::Routine)option.get<std::int32_t>("_Routine") != app::GUILauncherOption::Routine::UPDATE_MENU)
+	{
+		return false;
+	}
+
+	Object optionSound = option["_CurrentMenu"];
+	std::int32_t selectedIndex = optionSound.get<std::int32_t>("_SelectedIndex");
+
+	// If BGM Selection selected
+	Object nameList = optionSound["NameList"];
+	if (selectedIndex >= nameList.get<std::int32_t>("Length"))
+	{
+		return false;
+	}
+	Guid nameGuid = nameList.get<Guid>(selectedIndex);
+	if (nameGuid != GUID_BGM_SELECTION)
+	{
+		return false;
+	}
+
+	// If Favorites selected
+	Object cursorIndexList = optionSound["_CursolIndex"];
+	if (selectedIndex >= cursorIndexList.get<std::int32_t>("Length"))
+	{
+		return false;
+	}
+	std::int32_t cursorIndex = cursorIndexList.get<std::int32_t>(selectedIndex);
+	Object bgmTypeListAvailable = optionSound["BGMTypeListAvailable"];
+	if (cursorIndex >= bgmTypeListAvailable.get<std::int32_t>("Count"))
+	{
+		return false;
+	}
+	app::Launcher::BGMType bgmType = (app::Launcher::BGMType)bgmTypeListAvailable.get<std::int32_t>(cursorIndex);
+	if (bgmType != app::Launcher::BGMType::Favorite)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 /// @brief Install all hooks used for audio menu extensions
@@ -272,10 +334,10 @@ void AudioMenuExtension::installHooks()
 
 				fluentScrollBar.set<bool>("Visible", true);
 
-				Guid guidTextPrev = L"cbfc4e85-c78c-4632-bd34-0e4a10e41f6b"_guid; // <ICON LAUNCHER_PAGE_PREV>
+				Guid guidTextPrev = GUID_ICON_LAUNCHER_PAGE_PREV;
 				textPrev.set<Guid>("MessageId", guidTextPrev);
 
-				Guid guidTextNext = L"14dd8e95-a0c1-462a-acbc-5c2e34498a34"_guid; // <ICON LAUNCHER_PAGE_NEXT>
+				Guid guidTextNext = GUID_ICON_LAUNCHER_PAGE_NEXT;
 				textNext.set<Guid>("MessageId", guidTextNext);
 			}
 			else
@@ -384,6 +446,23 @@ void AudioMenuExtension::installHooks()
 				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
 			}
 
+			// At this point we can switch to our dummy menu item
+			if (menuItem == nullptr && isBgmSelectionFavoritesSelected())
+			{
+				// Do lazy initialization once the game is fully loaded
+				if (s_dummyCustomPlaylistMenuItem == nullptr)
+				{
+					s_dummyCustomPlaylistMenuItem = std::make_unique<CustomPlaylistMenuItem>(
+						std::optional<std::filesystem::path>{},
+						L"00000000-0000-0000-0000-000000000000"_guid,
+						L"00000000-0000-0000-0000-000000000000"_guid,
+						&s_dummyCustomPlaylistMenuItemOptions,
+						&s_dummyCustomPlaylistMenuItemValue,
+						std::to_underlying(CustomPlaylistMenuItem::Option::Favorites));
+				}
+				menuItem = s_dummyCustomPlaylistMenuItem;
+			}
+
 			if (menuItem != nullptr)
 			{
 				// call app.GameInputManager.isLauncherInputSuccess()
@@ -400,6 +479,28 @@ void AudioMenuExtension::installHooks()
 			}
 
 			return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+		},
+		nullptr));
+
+	// Hook method which is called each time the Settings menu updates
+	s_hooks.emplace_back(REFrameworkHelper::hook(
+		"app.GUILauncherOption.update()",
+		[](int argc, void **argv, auto...)
+		{
+			REFrameworkHelper::Object option = REFrameworkHelper::Object(argv[1]);
+
+			// call onUpdate() on dummy menu items
+			bool doUpdate = true;
+			if (s_dummyCustomPlaylistMenuItem != nullptr)
+			{
+				doUpdate = s_dummyCustomPlaylistMenuItem->onUpdate() && doUpdate;
+			}
+
+			if (!doUpdate)
+			{
+				return REFRAMEWORK_HOOK_SKIP_ORIGINAL;
+			}
+			return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 		},
 		nullptr));
 
@@ -459,7 +560,7 @@ void AudioMenuExtension::installHooks()
 				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 			}
 
-			Guid editListGuid = L"079c9622-16d9-4871-b199-c25eb73196c8"_guid;
+			Guid editListGuid = GUID_EDIT_LIST;
 			std::int32_t editListIdx = -1;
 
 			// Check if Edit List is already added
@@ -503,11 +604,14 @@ void AudioMenuExtension::installHooks()
 				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
 			}
 
-			// Check if current menu item is enterable
-			std::shared_ptr<MenuItem> menuItem = getCustomMenuItem(option["_CurrentMenu"].get<std::int32_t>("_SelectedIndex"));
-			if (menuItem == nullptr || !menuItem->canEnter())
+			if (!isBgmSelectionFavoritesSelected())
 			{
-				return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+				// Check if current menu item is enterable
+				std::shared_ptr<MenuItem> menuItem = getCustomMenuItem(option["_CurrentMenu"].get<std::int32_t>("_SelectedIndex"));
+				if (menuItem == nullptr || !menuItem->canEnter())
+				{
+					return REFRAMEWORK_HOOK_CALL_ORIGINAL;
+				}
 			}
 
 			// Add Edit List to the operation guide

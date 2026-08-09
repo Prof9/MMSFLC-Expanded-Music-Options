@@ -34,5 +34,5 @@ public:
 	};
 
 	bool createAndLoadMessages(std::map<Guid, std::map<via::Language, char16_t const *>> messages, via::Language fillRemainingWithLanguage = via::Language::Unknown) const;
-	bool replaceMessageByName(std::string name, std::map<via::Language, char16_t const *> languageStrings, via::Language fillRemainingWithLanguage = via::Language::Unknown) const;
+	bool replaceMessageByName(std::string_view name, std::map<via::Language, char16_t const *> languageStrings, via::Language fillRemainingWithLanguage = via::Language::Unknown) const;
 };

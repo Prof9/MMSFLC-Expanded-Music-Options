@@ -38,7 +38,11 @@ void MusicSystemMod::install()
 
 	// Load strings
 	MessageManager messageManager(getNativeSingleton("via.gui.MessageManager"));
-	messageManager.createAndLoadMessages(MusicSystemMod::STRINGS, via::Language::English);
+	messageManager.createAndLoadMessages(MusicSystemMod::STRINGS_ADDED, via::Language::English);
+	for (auto stringReplace : MusicSystemMod::STRINGS_REPLACED)
+	{
+		messageManager.replaceMessageByName(stringReplace.first, stringReplace.second, via::Language::English);
+	}
 
 	buildMenu();
 

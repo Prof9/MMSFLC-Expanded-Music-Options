@@ -10,5 +10,5 @@
 class MessageUtility
 {
 public:
-	static Guid *getMessageGuidByName(std::string name);
+	static Guid *getMessageGuidByName(std::string_view name);
 };

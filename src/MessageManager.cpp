@@ -219,7 +219,7 @@ bool MessageManager::createAndLoadMessages(std::map<Guid, std::map<via::Language
 /// @param languageStrings Mapping of language to string.
 /// @param fillRemainingWithLanguage If set to one of the languages provided in `languageStrings`, then all language strings which are not in `languageStrings` will be copied from that language.
 /// @return `true` if all replacements succeeded, `false` if any failed.
-bool MessageManager::replaceMessageByName(std::string name, std::map<via::Language, char16_t const *> languageStrings, via::Language fillRemainingWithLanguage) const
+bool MessageManager::replaceMessageByName(std::string_view name, std::map<via::Language, char16_t const *> languageStrings, via::Language fillRemainingWithLanguage) const
 {
 	Guid *guid = MessageUtility::getMessageGuidByName(name);
 	if (guid == nullptr)

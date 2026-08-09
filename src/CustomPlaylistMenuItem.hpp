@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 
 #include "MenuItem.hpp"
 #include "REFrameworkHelper.hpp"
@@ -30,7 +31,7 @@ struct CustomPlaylistMenuItem : MenuItem
 	};
 
 public:
-	CustomPlaylistMenuItem(const std::filesystem::path &playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<MenuItem::Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue = 0);
+	CustomPlaylistMenuItem(std::optional<const std::filesystem::path> playlistFileName, Guid nameGuid, Guid descriptionGuid, const std::vector<MenuItem::Option> *options, std::int32_t *valuePtr, std::int32_t defaultValue = 0);
 	virtual ~CustomPlaylistMenuItem();
 
 	virtual void setValue(std::int32_t value) const;
@@ -64,7 +65,7 @@ private:
 	std::size_t m_numNewAlbumFlags;
 	std::unordered_map<std::size_t, std::uint16_t> m_pendingDelayBgmRequests;
 
-	std::filesystem::path m_customPlaylistFileName;
+	std::optional<std::filesystem::path> m_customPlaylistFileName;
 	REFrameworkHelper::Object m_customPlaylist;
 
 	// Static state
