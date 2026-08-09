@@ -205,6 +205,13 @@ void MusicSystemMod::buildMenu()
 		&OPTIONS_COMMON,
 		&s_settings.MiscellaneousBgm,
 		defaultSettings.MiscellaneousBgm);
+	s_menuItemTitleScreenBgm = std::make_unique<CustomPlaylistMenuItem>(
+		CONFIG_FILE("playlist_title_screen.bin"),
+		L"8a38a4b9-0527-4b36-abde-c96ca132db30"_guid,
+		L"69a9799a-898f-40c8-b1e0-550eb37256e7"_guid,
+		&OPTIONS_COMMON,
+		&s_settings.TitleScreenBgm,
+		defaultSettings.TitleScreenBgm);
 	s_menuItemMainMenuBgm = std::make_unique<CustomPlaylistMenuItem>(
 		CONFIG_FILE("playlist_main_menu.bin"),
 		L"3cc5ab6c-4a2a-4cb0-8816-845aefbf01ab"_guid,
@@ -255,6 +262,7 @@ void MusicSystemMod::buildMenu()
 		s_menuItemIncidentBgmRealWorld,
 		s_menuItemIncidentBgmWaveWorld,
 		s_menuItemMiscellaneousBgm,
+		s_menuItemTitleScreenBgm,
 		s_menuItemMainMenuBgm,
 		s_menuItemDlcBgmLoneliness,
 		s_menuItemDlcBgmAstroWave,
@@ -451,6 +459,15 @@ void MusicSystemMod::buildMenu()
 		{
 			.Type = MusicSettingType::CustomPlaylist,
 			.TriggerIDs = {
+				0xAAF919F9, // SF1: Shooting Star (SF1 Version)
+				0x5375B7AF, // SF2: Shooting Star (SF2 Version)
+				0xF023375A, // SF3: Shooting Star (SF3 Version)
+			},
+			.MenuItem = s_menuItemTitleScreenBgm,
+		},
+		{
+			.Type = MusicSettingType::CustomPlaylist,
+			.TriggerIDs = {
 				0xB73EA2B6, // SF1: FM-ian Theme
 				0x6DFDA90A, // SF1: Cheerful Company
 				0xEC4B9853, // SF1: Tension (SF1 Version)
@@ -462,7 +479,6 @@ void MusicSystemMod::buildMenu()
 				0x11DA3ED0, // SF1: Battle Prelude (SF1 Version)
 				0x522A7C35, // SF1: Loneliness
 				0x79620121, // SF1: Sweet Frequency
-				0xAAF919F9, // SF1: Shooting Star (SF1 Version)
 				0x9CB5A790, // SF1: A Place to Return
 				0x326F03DC, // SF2: Vega's Theme
 				0x4C86D9BA, // SF2: Anthem of the Solitary
@@ -479,7 +495,6 @@ void MusicSystemMod::buildMenu()
 				0x73B41024, // SF2: Sky-Hi Coliseum
 				0xBE23BF31, // SF2: Network
 				0x2B0C61C5, // SF2: Eternal Memories
-				0x5375B7AF, // SF2: Shooting Star (SF2 Version)
 				0xA2DC17E9, // SF3: Satella Police, Move Out!
 				0xA86FBCFA, // SF3: Shoot and Slash!
 				0xB49CA84A, // SF3: Dealer's Theme
@@ -499,7 +514,6 @@ void MusicSystemMod::buildMenu()
 				0x4E461546, // SF3: Noise Change
 				0x18CCC173, // SF3: Journey's End
 				0x6B21F3F1, // SF3: Chaotic Waves
-				0xF023375A, // SF3: Shooting Star (SF3 Version)
 				0xA3CD607A, // SF3: Shooting Star - Misora Live Version (SF3 Version)
 				0x0D65E048, // SF3: Shooting Star - Sonia Live Version (SF3 Version)
 			},

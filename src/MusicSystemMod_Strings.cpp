@@ -104,6 +104,14 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 {
 			 {via::Language::English, u"Select what tracks will play during miscellaneous events."},
 		 }},
+		{L"8a38a4b9-0527-4b36-abde-c96ca132db30"_guid,
+		 {
+			 {via::Language::English, u"Title Screen BGM"},
+		 }},
+		{L"69a9799a-898f-40c8-b1e0-550eb37256e7"_guid,
+		 {
+			 {via::Language::English, u"Select what tracks will play on the in-game title screen."},
+		 }},
 		{L"3cc5ab6c-4a2a-4cb0-8816-845aefbf01ab"_guid,
 		 {
 			 {via::Language::English, u"Main Menu BGM"},
@@ -118,7 +126,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"238a92fc-c37b-4319-b2e1-f40cb6915c33"_guid,
 		 {
-			 {via::Language::English, u"Select whether to play Loneliness - Summer Shade Version in-game."},
+			 {via::Language::English, u"Select whether to play Loneliness - Summer Shade Version in-game.\n(This takes priority over the above settings.)"},
 		 }},
 		{L"28a49ef5-fc0c-48c5-a8eb-60c92ba20cc8"_guid,
 		 {
@@ -126,7 +134,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"5491219b-1b6e-4e37-a894-e065e37d7bb2"_guid,
 		 {
-			 {via::Language::English, u"Select whether to play Astro Wave - Brilliant Expanse Version in-game."},
+			 {via::Language::English, u"Select whether to play Astro Wave - Brilliant Expanse Version in-game.\n(This takes priority over the above settings.)"},
 		 }},
 		{L"cc097b76-9d12-40db-91ee-dff3e0852892"_guid,
 		 {
@@ -134,7 +142,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"8313007b-6258-4f73-82e3-07952e8d9831"_guid,
 		 {
-			 {via::Language::English, u"Select whether to play Anthem of the Solitary - Howling Void Version in-game."},
+			 {via::Language::English, u"Select whether to play Anthem of the Solitary - Howling Void Version in-game.\n(This takes priority over the above settings.)"},
 		 }},
 		{L"31d45ae4-128e-4172-820f-4fd2b06510a5"_guid,
 		 {
@@ -142,7 +150,7 @@ const std::map<Guid, std::map<via::Language, char16_t const *>> MusicSystemMod::
 		 }},
 		{L"61511466-dd94-4c00-ae88-4a8878002c8b"_guid,
 		 {
-			 {via::Language::English, u"Select whether to play Cheerful Indoors - School Days Version in-game."},
+			 {via::Language::English, u"Select whether to play Cheerful Indoors - School Days Version in-game.\n(This takes priority over the above settings.)"},
 		 }},
 		{L"c564c411-216f-498f-9c53-459408c675d5"_guid,
 		 {

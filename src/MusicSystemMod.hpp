@@ -59,6 +59,7 @@ public:
 		std::int32_t IncidentBgmRealWorld = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange);
 		std::int32_t IncidentBgmWaveWorld = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange);
 		std::int32_t MiscellaneousBgm = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange);
+		std::int32_t TitleScreenBgm = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange);
 		std::int32_t MainMenuBgm = std::to_underlying(CustomPlaylistMenuItem::Option::NoChange);
 		std::int32_t DlcBgmLoneliness = false;
 		std::int32_t DlcBgmAstroWave = false;
@@ -123,6 +124,7 @@ private:
 	static inline std::shared_ptr<CustomPlaylistMenuItem> s_menuItemIncidentBgmRealWorld;
 	static inline std::shared_ptr<CustomPlaylistMenuItem> s_menuItemIncidentBgmWaveWorld;
 	static inline std::shared_ptr<CustomPlaylistMenuItem> s_menuItemMiscellaneousBgm;
+	static inline std::shared_ptr<CustomPlaylistMenuItem> s_menuItemTitleScreenBgm;
 	static inline std::shared_ptr<CustomPlaylistMenuItem> s_menuItemMainMenuBgm;
 	static inline std::shared_ptr<MenuItem> s_menuItemDlcBgmLoneliness;
 	static inline std::shared_ptr<MenuItem> s_menuItemDlcBgmAstroWave;
